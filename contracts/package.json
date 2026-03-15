@@ -1,0 +1,19 @@
+{
+  "name": "demo-03-fib-caller",
+  "version": "1.0.0",
+  "description": "Demo 03: EVM Solidity contract calls Rust PVM contract for Fibonacci computation",
+  "scripts": {
+    "build:rust": "cd rust-contract && cargo build --release && polkatool link --strip target/riscv64emac-unknown-none-polkavm/release/fibonacci -o fibonacci.polkavm",
+    "compile": "hardhat compile",
+    "demo": "hardhat run scripts/demo.ts --network hub",
+    "demo:all": "npm run build:rust && npm run compile && npm run demo",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.17",
+    "typescript": "^5.6.3"
+  }
+}
