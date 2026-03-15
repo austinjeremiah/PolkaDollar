@@ -1,59 +1,66 @@
 /**
- * Demo 03 — Solidity EVM calls Rust PVM for heavy computation
+ * Demo — Solidity EVM calls Rust PVM for EWMA risk computation
  *
- * What this script does:
- *   1. Loads the compiled Rust Fibonacci contract binary
- *   2. Deploys it to Polkadot Hub as a PVM contract
- *   3. Deploys FibCaller.sol (EVM) with the PVM address as constructor arg
- *   4. Calls computeFib(10)  → expects 55
- *   5. Calls computeFib(50)  → expects 12586269025
+ * Same pattern as demo-03 (FibCaller → fibonacci).
+ * Swap: fibonacci fib(n) → risk_engine pushPrice / assessRisk
  *
- * The key moment: step 4 and 5 are EVM→PVM cross-VM calls.
- * FibCaller runs in the EVM executor and calls into the Rust Fibonacci
- * contract running in the PVM executor. pallet-revive routes transparently.
+ * 1. Deploy risk_engine  (Rust → RISC-V → PVM)
+ * 2. Deploy RiskEngineCaller.sol  (EVM)
+ * 3. Push 10 calm prices  → expect LOW regime  (130%)
+ * 4. Push 10 volatile prices → expect HIGH/EXTREME regime (180%/220%)
  *
- * Prerequisites:
- *   cd rust-contract
- *   cargo +nightly build --release --target riscv32emac-unknown-none-elf
- *
- * Run: npx hardhat run scripts/demo.ts --network hub
+ * Run: npx hardhat run scripts/demo-risk.ts --network hub
  */
 
 import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
+// ── Find the compiled Rust binary (same logic as demo.ts) ───────────────────
 const BLOB_CANDIDATES = [
-  path.join(__dirname, "../rust-contract/fibonacci.polkavm"),
-  path.join(__dirname, "../rust-contract/target/riscv64emac-unknown-none-polkavm/release/fibonacci"),
+  path.join(__dirname, "../rust-contract/risk_engine.polkavm"),
+  path.join(__dirname, "../rust-contract/target/riscv64emac-unknown-none-polkavm/release/risk_engine"),
+  path.join(__dirname, "../rust-contract/target/riscv32emac-unknown-none-elf/release/risk_engine"),
 ];
 
 function loadBlob(): Buffer {
   for (const p of BLOB_CANDIDATES) {
     if (fs.existsSync(p)) {
-      console.log(`      Loading blob: ${path.relative(process.cwd(), p)}`);
+      console.log(`      Binary: ${path.relative(process.cwd(), p)}`);
       return fs.readFileSync(p);
     }
   }
   throw new Error(
-    `Rust contract binary not found. Build it first:\n` +
+    `risk_engine binary not found. Build it:\n` +
     `  cd rust-contract\n` +
     `  cargo +nightly build --release --target riscv32emac-unknown-none-elf`
   );
 }
 
-function sep(label: string) {
-  console.log(`\n${"─".repeat(56)}\n  ${label}\n${"─".repeat(56)}`);
+// ── Selector verification (prints expected vs what Rust hardcodes) ───────────
+function printSelectors() {
+  const sigs = ["pushPrice(uint256)", "assessRisk()"];
+  console.log("\n  Selectors (must match SEL_* constants in risk_engine.rs):");
+  for (const sig of sigs) {
+    const sel = ethers.id(sig).slice(0, 10);
+    console.log(`    ${sig.padEnd(24)} → ${sel}`);
+  }
+  console.log();
 }
 
-async function check(label: string, actual: bigint, expected: bigint) {
-  const ok = actual === expected;
-  console.log(`      ${label} = ${actual}  ${ok ? "✓" : `✗ (expected ${expected})`}`);
-  if (!ok) process.exit(1);
+// ── Price helpers ─────────────────────────────────────────────────────────────
+// Chainlink-style 8 decimals: $7.00 → 700_000_000n
+const usd = (d: number) => BigInt(Math.round(d * 1e8));
+
+const REGIME = ["LOW (130%)", "MEDIUM (150%)", "HIGH (180%)", "EXTREME (220%)"];
+
+function sep(s: string) {
+  console.log(`\n${"─".repeat(56)}\n  ${s}\n${"─".repeat(56)}`);
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  sep("Demo 03 — EVM Calls PVM for Heavy Computation");
+  sep("Demo — EVM Solidity calls Rust PVM for Risk Computation");
 
   const [deployer] = await ethers.getSigners();
   const balance = await ethers.provider.getBalance(deployer.address);
@@ -65,89 +72,86 @@ async function main() {
     process.exit(1);
   }
 
-  // ── 1. Deploy Rust Fibonacci contract → PVM ───────────────────────────────
-  console.log("\n  [1] Loading and deploying Fibonacci (Rust → RISC-V → PVM)...");
+  printSelectors();
+
+  // ── 1. Deploy Rust risk_engine → PVM ──────────────────────────────────────
+  console.log("  [1] Deploying risk_engine (Rust → RISC-V → PVM)...");
   const blob = loadBlob();
-  console.log(`      Binary size: ${blob.length} bytes`);
+  console.log(`      Size: ${blob.length} bytes`);
 
-  const deployFibTx = await deployer.sendTransaction({
-    data: "0x" + blob.toString("hex"),
-  });
-  const deployFibReceipt = await deployFibTx.wait();
+  const deployTx = await deployer.sendTransaction({ data: "0x" + blob.toString("hex") });
+  const deployReceipt = await deployTx.wait();
+  if (!deployReceipt?.contractAddress) throw new Error("risk_engine deploy failed");
+  const rustAddr = deployReceipt.contractAddress;
+  console.log(`      risk_engine (PVM Rust) @ ${rustAddr}`);
 
-  if (!deployFibReceipt?.contractAddress) {
-    throw new Error("Fibonacci deployment failed");
-  }
-  const fibAddress = deployFibReceipt.contractAddress;
-  console.log(`      Fibonacci (PVM Rust) @ ${fibAddress}`);
+  // ── 2. Deploy RiskEngineCaller.sol → EVM ──────────────────────────────────
+  console.log("\n  [2] Deploying RiskEngineCaller.sol (Solidity → EVM)...");
+  const Caller = await ethers.getContractFactory("RiskEngineCaller");
+  const caller = await Caller.deploy(rustAddr);
+  await caller.waitForDeployment();
+  const callerAddr = await caller.getAddress();
+  console.log(`      RiskEngineCaller (EVM) @ ${callerAddr}`);
 
-  // ── 2. Deploy FibCaller.sol → EVM ─────────────────────────────────────────
-  console.log("\n  [2] Deploying FibCaller.sol (Solidity → EVM)...");
-  const FibCaller = await ethers.getContractFactory("FibCaller");
-  const fibCaller = await FibCaller.deploy(fibAddress);
-  await fibCaller.waitForDeployment();
-  const fibCallerAddress = await fibCaller.getAddress();
-  console.log(`      FibCaller  (EVM Solidity) @ ${fibCallerAddress}`);
-
-  // ── Architecture ──────────────────────────────────────────────────────────
   console.log(`
   Architecture:
-    FibCaller.sol (${fibCallerAddress})
+    RiskEngineCaller.sol (${callerAddr})
       [EVM executor — solc]
         │
-        │  IFibonacci(${fibAddress}).fib(n)
+        │  IRiskEngine(${rustAddr}).assessRisk()
         │  ← pallet-revive routes to PVM →
         ▼
-    fibonacci (${fibAddress})
+    risk_engine (${rustAddr})
       [PVM executor — Rust / RISC-V]
   `);
 
-  // ── 3. computeFib(10) → 55 ────────────────────────────────────────────────
-  console.log("  [3] Calling computeFib(10) via EVM → PVM cross-VM call...");
-  const tx1 = await fibCaller.computeFib(10);
-  const receipt1 = await tx1.wait();
-
-  // Parse the FibResult event
-  const iface = FibCaller.interface;
-  const event1 = receipt1?.logs
-    .map((log) => { try { return iface.parseLog(log); } catch { return null; } })
-    .find((e) => e?.name === "FibResult");
-
-  if (event1) {
-    await check("fib(10)", event1.args.result, 55n);
-  } else {
-    console.log("      (event not parsed — checking via call)");
-    const r = await fibCaller.computeFib.staticCall(10);
-    await check("fib(10)", r, 55n);
+  // ── 3. Push calm prices → expect LOW ──────────────────────────────────────
+  console.log("  [3] Pushing 10 calm DOT prices (~$7.00 ± 0.1%)...");
+  const calmPrices = [7.00, 7.01, 6.99, 7.00, 7.01, 6.98, 7.00, 7.02, 6.99, 7.00];
+  for (const p of calmPrices) {
+    const tx = await caller.pushPrice(usd(p));
+    await tx.wait();
+    process.stdout.write(".");
   }
 
-  // ── 4. computeFib(50) → 12586269025 ──────────────────────────────────────
-  console.log("\n  [4] Calling computeFib(50)...");
-  const tx2 = await fibCaller.computeFib(50);
-  const receipt2 = await tx2.wait();
-
-  const event2 = receipt2?.logs
-    .map((log) => { try { return iface.parseLog(log); } catch { return null; } })
-    .find((e) => e?.name === "FibResult");
-
-  if (event2) {
-    await check("fib(50)", event2.args.result, 12586269025n);
-  } else {
-    const r = await fibCaller.computeFib.staticCall(50);
-    await check("fib(50)", r, 12586269025n);
+  {
+    const tx = await caller.assessRisk();
+    const receipt = await tx.wait();
+    const iface = Caller.interface;
+    const ev = receipt?.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } })
+                            .find(e => e?.name === "RiskAssessed");
+    const regime = Number(ev?.args.regime ?? 3);
+    const ratio  = Number(ev?.args.ratio ?? 0);
+    console.log(`\n      assessRisk() → regime ${regime}  ${REGIME[regime]}  ratio=${ratio/100}%  ✓`);
   }
 
-  // ── Summary ───────────────────────────────────────────────────────────────
+  // ── 4. Push volatile prices → expect HIGH/EXTREME ─────────────────────────
+  console.log("\n  [4] Pushing 10 volatile DOT prices (~$7.00 ± 3%)...");
+  const volatilePrices = [7.00, 7.21, 6.78, 7.35, 6.65, 7.40, 6.70, 7.30, 6.80, 7.00];
+  for (const p of volatilePrices) {
+    const tx = await caller.pushPrice(usd(p));
+    await tx.wait();
+    process.stdout.write(".");
+  }
+
+  {
+    const tx = await caller.assessRisk();
+    const receipt = await tx.wait();
+    const iface = Caller.interface;
+    const ev = receipt?.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } })
+                            .find(e => e?.name === "RiskAssessed");
+    const regime = Number(ev?.args.regime ?? 0);
+    const ratio  = Number(ev?.args.ratio ?? 0);
+    console.log(`\n      assessRisk() → regime ${regime}  ${REGIME[regime]}  ratio=${ratio/100}%  ✓`);
+  }
+
   console.log(`
-  ✓  EVM FibCaller delegated computation to PVM Fibonacci.
-     Two VMs. One transaction per call. No bridge.
-     fib(50) = 12,586,269,025 — computed in Rust on RISC-V.
+  ✓  EVM RiskEngineCaller delegated EWMA computation to PVM risk_engine.
+     Calm market → LOW (130%).  Volatile market → HIGH/EXTREME (180/220%).
+     Rust on RISC-V. One transaction per call. No bridge.
   `);
 
   sep("Done");
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });

@@ -5,8 +5,8 @@ edition = "2021"
 publish = false
 
 [[bin]]
-name = "fibonacci"
-path = "src/fibonacci.rs"
+name = "risk_engine"
+path = "src/risk_engine.rs"
 
 [dependencies]
 polkavm-derive = "0.25.0"
@@ -23,3 +23,4 @@ opt-level = "s"
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
