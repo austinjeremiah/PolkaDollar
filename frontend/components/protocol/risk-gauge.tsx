@@ -10,10 +10,10 @@ type Props = {
 };
 
 const ANGLES: Record<Props["regime"], number> = {
-  LOW: -60,
-  MEDIUM: -20,
-  HIGH: 25,
-  EXTREME: 62,
+  LOW: -78,
+  MEDIUM: -28,
+  HIGH: 22,
+  EXTREME: 74,
 };
 
 export function RiskGauge({ regime, volatilityPct, ratioPct, compact = false }: Props) {
