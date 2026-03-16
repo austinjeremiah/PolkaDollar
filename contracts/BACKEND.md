@@ -33,7 +33,7 @@ All backend services deployed, tested, and ready for frontend integration.
 ```bash
 Network Name  : hub (Paseo Asset Hub)
 RPC Endpoint  : https://eth-rpc-testnet.polkadot.io/
-Chain ID      : 1287
+Chain ID      : 420420417
 Deployer      : 0xE488bb2bd58E9C425F525293856FAA529f7b1db3
 ```
 
@@ -157,7 +157,10 @@ NEXT_PUBLIC_RISK_ENGINE_ADDRESS=0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B
 NEXT_PUBLIC_XCM_PRECOMPILE=0x000000000000000000000000000000000000A000
 NEXT_PUBLIC_XCM_DEST_HYDRATION=0x04010100b90b0000
 NEXT_PUBLIC_RPC_URL=https://eth-rpc-testnet.polkadot.io/
-NEXT_PUBLIC_CHAIN_ID=1287
+NEXT_PUBLIC_CHAIN_ID=420420417
+NEXT_PUBLIC_CHAIN_NAME=Polkadot Hub TestNet
+NEXT_PUBLIC_CURRENCY_SYMBOL=PAS
+NEXT_PUBLIC_EXPLORER_URL=https://blockscout-testnet.polkadot.io/
 ```
 
 ---

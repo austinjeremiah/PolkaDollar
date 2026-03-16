@@ -20,7 +20,10 @@ NEXT_PUBLIC_RISK_ENGINE_ADDRESS=0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B
 NEXT_PUBLIC_XCM_PRECOMPILE=0x000000000000000000000000000000000000A000
 NEXT_PUBLIC_XCM_DEST_HYDRATION=0x04010100b90b0000
 NEXT_PUBLIC_RPC_URL=https://eth-rpc-testnet.polkadot.io/
-NEXT_PUBLIC_CHAIN_ID=1287
+NEXT_PUBLIC_CHAIN_ID=420420417
+NEXT_PUBLIC_CHAIN_NAME=Polkadot Hub TestNet
+NEXT_PUBLIC_CURRENCY_SYMBOL=PAS
+NEXT_PUBLIC_EXPLORER_URL=https://blockscout-testnet.polkadot.io/
 ```
 
 ### 2. Use the Backend Hook
@@ -156,10 +159,10 @@ import { CollateralVault } from '@/lib/contracts/abi';
 
 | Property | Value |
 |----------|-------|
-| **Name** | Paseo Asset Hub |
-| **Chain ID** | 1287 |
+| **Name** | Polkadot Hub TestNet |
+| **Chain ID** | 420420417 |
 | **RPC** | https://eth-rpc-testnet.polkadot.io/ |
-| **Currency** | DOT |
+| **Currency** | PAS |
 | **Block Time** | ~12 seconds |
 
 ---
@@ -167,7 +170,7 @@ import { CollateralVault } from '@/lib/contracts/abi';
 ## Testing the Integration
 
 ### 1. Connect wallet (MetaMask)
-- Switch to Paseo Asset Hub (1287)
+- Switch to Polkadot Hub TestNet (420420417)
 
 ### 2. Deposit DOT
 ```typescript
@@ -203,7 +206,7 @@ console.log(price); // "1.61"
 
 ### No wallet connected
 - Ensure MetaMask is installed
-- Ensure you're on the right network (Paseo Asset Hub, Chain ID 1287)
+- Ensure you're on the right network (Polkadot Hub TestNet, Chain ID 420420417)
 
 ### Transaction reverted
 - Check if you have enough DOT for gas

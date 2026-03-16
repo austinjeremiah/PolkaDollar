@@ -5,10 +5,11 @@ import { ethers } from "hardhat";
  * Bypasses the contract wrapper
  */
 
-// Generated XCM bytes
-const DEST_HYDRATION = "0x04010100b90b0000";
+// Generated XCM bytes (relay-chain route)
+const DEST_RELAY = process.env.DEST_HEX || "0x040100";
 const MESSAGE_PAYLOAD =
-  "0x0414000400000002093d0001000000821a060001030102286bee020004000401050b0200000103000000000000000000000000000000000000000000000000000000000000000000";
+  process.env.MESSAGE_HEX ||
+  "0x040c000400000002093d0001000000821a06000b0200000103000000000000000000000000000000000000000000000000000000000000000000";
 
 // The working precompile on Asset Hub Paseo
 const XCM_PRECOMPILE = "0x000000000000000000000000000000000000A000";
@@ -39,7 +40,7 @@ async function main() {
 
   // Show parameters
   console.log("📤 XCM Message Parameters:");
-  console.log(`   Destination: ${DEST_HYDRATION}`);
+  console.log(`   Destination: ${DEST_RELAY}`);
   console.log(`   Message:     ${MESSAGE_PAYLOAD.slice(0, 60)}...`);
   console.log(`   Message len: ${(MESSAGE_PAYLOAD.length / 2 - 1)} bytes`);
   console.log(`   Precompile:  ${XCM_PRECOMPILE}\n`);
@@ -50,7 +51,7 @@ async function main() {
     const gasEstimate = await ethers.provider.estimateGas({
       to: XCM_PRECOMPILE,
       data: xcmPrecompile.interface.encodeFunctionData("send", [
-        DEST_HYDRATION,
+        DEST_RELAY,
         MESSAGE_PAYLOAD,
       ]),
     });
@@ -58,7 +59,7 @@ async function main() {
 
     // Call the precompile
     console.log("⏳ Sending XCM through precompile...");
-    const tx = await xcmPrecompile.send(DEST_HYDRATION, MESSAGE_PAYLOAD, {
+    const tx = await xcmPrecompile.send(DEST_RELAY, MESSAGE_PAYLOAD, {
       gasLimit: gasEstimate * 2n,
     });
 
@@ -75,7 +76,7 @@ async function main() {
       console.log(`   Gas used: ${receipt.gasUsed}`);
       console.log(`   From:     ${receipt.from}`);
 
-      console.log("\n✅ XCM sent to precompile - message routed to Hydration parachain!");
+      console.log("\n✅ XCM sent to precompile - message routed toward relay chain destination!");
     } else {
       console.log("⚠️  Transaction included but reverted");
     }

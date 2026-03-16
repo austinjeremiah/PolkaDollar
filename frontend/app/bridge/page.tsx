@@ -1,297 +1,130 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { ethers } from "ethers"
-import { ApiPromise, WsProvider } from "@polkadot/api"
-import { decodeAddress } from "@polkadot/util-crypto"
-import { hexToU8a, u8aToHex } from "@polkadot/util"
+import { FormEvent, useMemo, useState } from "react";
+import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { usePolkadollarBackend } from "@/hooks/use-polkadollar-backend";
 
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+const DEFAULT_XCM_MESSAGE =
+  process.env.NEXT_PUBLIC_XCM_MESSAGE ||
+  "0x040c000400000002093d0001000000821a0600010b0200000103000000000000000000000000000000000000000000000000000000000000000000";
 
-type BuildResult = {
-  destinationHex: string
-  messageHex: string
-  extrinsicHex: string
-}
-
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
-    }
-  }
-}
-
-const EVM_RPC = process.env.NEXT_PUBLIC_EVM_RPC_URL ?? "https://testnet-passet-hub-eth-rpc.polkadot.io"
-const WS_RPC = process.env.NEXT_PUBLIC_WS_RPC_URL ?? "wss://asset-hub-paseo-rpc.dwellir.com"
-const XCM_TRANSFER = process.env.NEXT_PUBLIC_XCM_TRANSFER_ADDRESS ?? ""
-
-const XCM_ABI = [
-  "function sendCrossChain(bytes destination, bytes message) external returns (bytes32)",
-  "function send(bytes destination, bytes message, address recipient) external returns (bytes32)",
-]
-
-function normalizeHexAddress(input: string): string {
-  if (!ethers.isAddress(input)) {
-    throw new Error("Invalid EVM address")
-  }
-  return ethers.getAddress(input)
-}
-
-async function ensureApi(current: ApiPromise | null): Promise<ApiPromise> {
-  if (current && current.isConnected) {
-    return current
-  }
-  const provider = new WsProvider(WS_RPC)
-  return ApiPromise.create({ provider })
-}
-
-function amountToPlanck(amount: string, decimals: number): bigint {
-  if (!amount || Number(amount) <= 0) {
-    throw new Error("Amount must be greater than 0")
-  }
-  return ethers.parseUnits(amount, decimals)
-}
-
-function shortHex(hex: string, chars = 14): string {
-  if (hex.length <= chars) return hex
-  return `${hex.slice(0, chars)}...${hex.slice(-8)}`
+function shortAddress(address: string): string {
+  if (!address) return "";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export default function BridgePage() {
-  const [api, setApi] = useState<ApiPromise | null>(null)
-  const [isWsReady, setIsWsReady] = useState(false)
+  const {
+    loading,
+    error,
+    clearError,
+    connectWallet,
+    switchNetwork,
+    depositCollateral,
+    withdrawCollateral,
+    mintPusd,
+    burnPusd,
+    getVaultState,
+    getPusdBalance,
+    getCurrentPrice,
+    sendXcmToHydration,
+    addresses,
+    xcmDestHydration,
+  } = usePolkadollarBackend();
 
-  const [wallet, setWallet] = useState<string>("")
-  const [recipientSs58, setRecipientSs58] = useState("")
-  const [amount, setAmount] = useState("1")
-  const [paraId, setParaId] = useState("2034")
-  const [assetDecimals, setAssetDecimals] = useState("18")
+  const [wallet, setWallet] = useState("");
+  const [status, setStatus] = useState("Idle");
+  const [lastTxHash, setLastTxHash] = useState("");
 
-  const [buildResult, setBuildResult] = useState<BuildResult | null>(null)
-  const [txHash, setTxHash] = useState("")
-  const [status, setStatus] = useState("Idle")
-  const [error, setError] = useState("")
+  const [depositAmount, setDepositAmount] = useState("1");
+  const [withdrawAmount, setWithdrawAmount] = useState("0.1");
+  const [mintAmount, setMintAmount] = useState("1");
+  const [burnAmount, setBurnAmount] = useState("0.5");
+  const [xcmMessage, setXcmMessage] = useState(DEFAULT_XCM_MESSAGE);
 
-  useEffect(() => {
-    let mounted = true
-    let connectedApi: ApiPromise | null = null
+  const [collateral, setCollateral] = useState("0");
+  const [debt, setDebt] = useState("0");
+  const [healthFactor, setHealthFactor] = useState("-");
+  const [pusdBalance, setPusdBalance] = useState("0");
+  const [dotPrice, setDotPrice] = useState("0");
 
-    ;(async () => {
-      try {
-        const readyApi = await ensureApi(null)
-        connectedApi = readyApi
-        if (!mounted) return
-        setApi(readyApi)
-        setIsWsReady(true)
-      } catch (err) {
-        console.error(err)
-        if (mounted) {
-          setError("Failed to connect to Polkadot WS endpoint. Check NEXT_PUBLIC_WS_RPC_URL.")
-          setIsWsReady(false)
-        }
-      }
-    })()
+  const walletLabel = useMemo(() => (wallet ? shortAddress(wallet) : "Connect MetaMask"), [wallet]);
 
-    return () => {
-      mounted = false
-      if (connectedApi) {
-        void connectedApi.disconnect()
-      }
-    }
-  }, [])
-
-  const canBuild = useMemo(() => {
-    return isWsReady && recipientSs58.trim().length > 0 && Number(amount) > 0 && Number(paraId) > 0
-  }, [amount, isWsReady, paraId, recipientSs58])
-
-  const connectWallet = async () => {
-    setError("")
-    if (!window.ethereum) {
-      setError("MetaMask not detected in browser.")
-      return
-    }
-
+  async function onConnectWallet() {
+    clearError();
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      await provider.send("eth_requestAccounts", [])
-      const signer = await provider.getSigner()
-      const addr = await signer.getAddress()
-      setWallet(addr)
-      setStatus(`Wallet connected: ${addr}`)
+      const addr = await connectWallet();
+      setWallet(addr);
+      setStatus(`Connected ${shortAddress(addr)}`);
     } catch (err) {
-      console.error(err)
-      setError("Wallet connection failed.")
+      const message = err instanceof Error ? err.message : "Wallet connection failed";
+      setStatus(message);
     }
   }
 
-  const buildBytes = async () => {
-    setError("")
-    setStatus("Building destination + message bytes...")
+  async function onRefresh(address = wallet) {
+    if (!address) return;
+    clearError();
+    setStatus("Refreshing on-chain state...");
 
     try {
-      if (!api) {
-        throw new Error("Polkadot API not ready")
-      }
+      const [vaultState, balance, price] = await Promise.all([
+        getVaultState(address),
+        getPusdBalance(address),
+        getCurrentPrice(),
+      ]);
 
-      const para = Number(paraId)
-      const planck = amountToPlanck(amount, Number(assetDecimals))
-      const accountId = decodeAddress(recipientSs58.trim())
-      const accountHex = u8aToHex(accountId)
-
-      const destination = api.createType("XcmVersionedLocation", {
-        V4: {
-          parents: 1,
-          interior: {
-            X1: [{ Parachain: para }],
-          },
-        },
-      })
-
-      const beneficiary = {
-        V4: {
-          parents: 0,
-          interior: {
-            X1: [
-              {
-                AccountId32: {
-                  network: null,
-                  id: accountHex,
-                },
-              },
-            ],
-          },
-        },
-      }
-
-      const assets = {
-        V4: [
-          {
-            id: {
-              Concrete: {
-                parents: 1,
-                interior: "Here",
-              },
-            },
-            fun: {
-              Fungible: planck,
-            },
-          },
-        ],
-      }
-
-      const xcmMessage = api.createType("XcmVersionedXcm", {
-        V4: [
-          {
-            WithdrawAsset: [
-              {
-                id: {
-                  Concrete: {
-                    parents: 1,
-                    interior: "Here",
-                  },
-                },
-                fun: {
-                  Fungible: planck,
-                },
-              },
-            ],
-          },
-          {
-            BuyExecution: {
-              fees: {
-                id: {
-                  Concrete: {
-                    parents: 1,
-                    interior: "Here",
-                  },
-                },
-                fun: {
-                  Fungible: planck,
-                },
-              },
-              weightLimit: "Unlimited",
-            },
-          },
-          {
-            DepositAsset: {
-              assets: "All",
-              beneficiary: {
-                parents: 0,
-                interior: {
-                  X1: [
-                    {
-                      AccountId32: {
-                        network: null,
-                        id: accountHex,
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          },
-        ],
-      })
-
-      const tx = api.tx.polkadotXcm.limitedReserveTransferAssets(destination, beneficiary, assets, 0, "Unlimited")
-
-      setBuildResult({
-        destinationHex: destination.toHex(),
-        messageHex: xcmMessage.toHex(),
-        extrinsicHex: tx.method.toHex(),
-      })
-      setStatus("SCALE bytes built successfully.")
-    } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : "Failed to build XCM bytes")
-      setStatus("Build failed")
+      setCollateral(vaultState.collateral);
+      setDebt(vaultState.debt);
+      setHealthFactor(vaultState.healthFactor);
+      setPusdBalance(balance);
+      setDotPrice(price);
+      setStatus("State refreshed");
+    } catch {
+      setStatus("Refresh failed");
     }
   }
 
-  const sendToXcmTransfer = async () => {
-    setError("")
-    setTxHash("")
-
+  async function runAction(label: string, action: () => Promise<{ hash: string }>) {
+    clearError();
+    setStatus(`${label} in progress...`);
     try {
-      if (!window.ethereum) {
-        throw new Error("MetaMask not detected")
-      }
-      if (!buildResult) {
-        throw new Error("Build bytes first")
-      }
-      if (!XCM_TRANSFER) {
-        throw new Error("Set NEXT_PUBLIC_XCM_TRANSFER_ADDRESS in frontend env")
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      await provider.send("eth_requestAccounts", [])
-      const signer = await provider.getSigner()
-      const signerAddress = await signer.getAddress()
-
-      setStatus("Sending EVM tx to XCMTransfer...")
-
-      const contract = new ethers.Contract(normalizeHexAddress(XCM_TRANSFER), XCM_ABI, signer)
-
-      let tx
-      try {
-        tx = await contract.sendCrossChain(hexToU8a(buildResult.destinationHex), hexToU8a(buildResult.messageHex))
-      } catch {
-        tx = await contract.send(hexToU8a(buildResult.destinationHex), hexToU8a(buildResult.messageHex), signerAddress)
-      }
-
-      const receipt = await tx.wait()
-      setTxHash(receipt?.hash ?? tx.hash)
-      setStatus("XCM bytes submitted via contract. Check explorer/logs for dispatch result.")
-    } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : "Transaction failed")
-      setStatus("Send failed")
+      const result = await action();
+      setLastTxHash(result.hash);
+      setStatus(`${label} confirmed`);
+      await onRefresh();
+    } catch {
+      setStatus(`${label} failed`);
     }
+  }
+
+  async function onSubmitDeposit(e: FormEvent) {
+    e.preventDefault();
+    await runAction("Deposit", () => depositCollateral(depositAmount));
+  }
+
+  async function onSubmitWithdraw(e: FormEvent) {
+    e.preventDefault();
+    await runAction("Withdraw", () => withdrawCollateral(withdrawAmount));
+  }
+
+  async function onSubmitMint(e: FormEvent) {
+    e.preventDefault();
+    await runAction("Mint", () => mintPusd(mintAmount));
+  }
+
+  async function onSubmitBurn(e: FormEvent) {
+    e.preventDefault();
+    await runAction("Burn", () => burnPusd(burnAmount));
+  }
+
+  async function onSendXcm(e: FormEvent) {
+    e.preventDefault();
+    await runAction("XCM send", () => sendXcmToHydration(xcmMessage));
   }
 
   return (
@@ -299,108 +132,116 @@ export default function BridgePage() {
       <Navbar />
 
       <main className="px-4 pb-16 pt-8 lg:px-8">
-        <section className="mx-auto w-full max-w-6xl">
-          <h1 className="mb-2 text-3xl font-pixel tracking-tight text-foreground lg:text-5xl">POLKA$ BRIDGE</h1>
-          <p className="mb-8 max-w-3xl text-sm text-muted-foreground">
-            Build SCALE-encoded XCM destination and message bytes with Polkadot WS, then send them through your EVM
-            XCMTransfer contract using MetaMask.
-          </p>
+        <section className="mx-auto w-full max-w-6xl space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-pixel tracking-tight text-foreground lg:text-5xl">POLKA$ CONTROL PANEL</h1>
+            <p className="max-w-3xl text-sm text-muted-foreground">
+              End-to-end backend wiring: connect wallet, manage collateralized pUSD position, read oracle price, and
+              send XCM messages to Hydration.
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Wallet + Network</CardTitle>
+              <CardDescription>Connect MetaMask and switch to Paseo Asset Hub before using vault actions.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-3">
+              <Button onClick={onConnectWallet} variant="outline" disabled={loading}>
+                {walletLabel}
+              </Button>
+              <Button onClick={() => switchNetwork()} variant="outline" disabled={loading}>
+                Switch to Paseo
+              </Button>
+              <Button onClick={() => onRefresh()} disabled={loading || !wallet}>
+                Refresh State
+              </Button>
+            </CardContent>
+          </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Bridge Input</CardTitle>
-                <CardDescription>Hydration route over XCM V4 (Asset Hub style payload)</CardDescription>
+                <CardTitle className="text-lg">Live Position</CardTitle>
+                <CardDescription>State read directly from CollateralVault, PolkaDollar, and PriceFeed.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-muted-foreground">Recipient SS58</label>
-                  <Input
-                    placeholder="5F..."
-                    value={recipientSs58}
-                    onChange={(e) => setRecipientSs58(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-widest text-muted-foreground">Amount</label>
-                    <Input value={amount} onChange={(e) => setAmount(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-widest text-muted-foreground">Asset Decimals</label>
-                    <Input value={assetDecimals} onChange={(e) => setAssetDecimals(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-muted-foreground">Destination Para ID</label>
-                  <Input value={paraId} onChange={(e) => setParaId(e.target.value)} />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Button onClick={connectWallet} variant="outline">
-                    {wallet ? `Connected ${shortHex(wallet)}` : "Connect MetaMask"}
-                  </Button>
-                  <Button onClick={buildBytes} disabled={!canBuild}>
-                    Build XCM Bytes
-                  </Button>
-                </div>
-
-                <Button onClick={sendToXcmTransfer} className="w-full" disabled={!buildResult}>
-                  Send pUSD to Hydration
-                </Button>
-
-                <p className="text-xs text-muted-foreground">EVM RPC: {EVM_RPC}</p>
-                <p className="text-xs text-muted-foreground">WS RPC: {WS_RPC}</p>
-                <p className="text-xs text-muted-foreground">XCMTransfer: {XCM_TRANSFER || "not configured"}</p>
+              <CardContent className="space-y-2 text-sm">
+                <p>Wallet: {wallet || "-"}</p>
+                <p>DOT Price: ${dotPrice}</p>
+                <p>Collateral: {collateral} DOT</p>
+                <p>Debt: {debt} pUSD</p>
+                <p>pUSD Balance: {pusdBalance}</p>
+                <p>Health Factor: {healthFactor}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Encoded Payload</CardTitle>
-                <CardDescription>Destination + message hex generated by @polkadot/api types</CardDescription>
+                <CardTitle className="text-lg">Status</CardTitle>
+                <CardDescription>Transaction and integration state.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Status</p>
-                  <p className="text-sm">{status}</p>
-                </div>
-
+              <CardContent className="space-y-3 text-sm">
+                <p>{status}</p>
                 {error ? (
                   <div className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
                     {error}
                   </div>
                 ) : null}
-
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Destination Bytes</p>
-                  <p className="break-all rounded-md border bg-muted/30 p-3 text-xs font-mono">
-                    {buildResult?.destinationHex ?? "-"}
-                  </p>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Last Tx Hash</p>
+                  <p className="break-all rounded-md border bg-muted/30 p-3 text-xs font-mono">{lastTxHash || "-"}</p>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Message Bytes</p>
-                  <p className="break-all rounded-md border bg-muted/30 p-3 text-xs font-mono">
-                    {buildResult?.messageHex ?? "-"}
-                  </p>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Vault Actions</CardTitle>
+                <CardDescription>Deposit/withdraw DOT and mint/burn pUSD using deployed contracts.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={onSubmitDeposit}>
+                  <Input value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="DOT amount" />
+                  <Button type="submit" disabled={loading || !wallet}>Deposit DOT</Button>
+                </form>
 
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Extrinsic Method Hex</p>
-                  <p className="break-all rounded-md border bg-muted/30 p-3 text-xs font-mono">
-                    {buildResult?.extrinsicHex ?? "-"}
-                  </p>
-                </div>
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={onSubmitWithdraw}>
+                  <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="DOT amount" />
+                  <Button type="submit" disabled={loading || !wallet} variant="outline">Withdraw DOT</Button>
+                </form>
 
-                {txHash ? (
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Last EVM Tx Hash</p>
-                    <p className="break-all rounded-md border bg-muted/30 p-3 text-xs font-mono">{txHash}</p>
-                  </div>
-                ) : null}
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={onSubmitMint}>
+                  <Input value={mintAmount} onChange={(e) => setMintAmount(e.target.value)} placeholder="pUSD amount" />
+                  <Button type="submit" disabled={loading || !wallet}>Mint pUSD</Button>
+                </form>
+
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={onSubmitBurn}>
+                  <Input value={burnAmount} onChange={(e) => setBurnAmount(e.target.value)} placeholder="pUSD amount" />
+                  <Button type="submit" disabled={loading || !wallet} variant="outline">Burn pUSD</Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">XCM Send to Hydration</CardTitle>
+                <CardDescription>Direct precompile route using configured destination and message bytes.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">Precompile: {addresses.xcmPrecompile}</p>
+                <p className="text-xs text-muted-foreground">Destination: {xcmDestHydration}</p>
+                <form className="space-y-2" onSubmit={onSendXcm}>
+                  <Input
+                    value={xcmMessage}
+                    onChange={(e) => setXcmMessage(e.target.value)}
+                    placeholder="0x..."
+                  />
+                  <Button className="w-full" type="submit" disabled={loading || !wallet}>
+                    Send XCM Message
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -409,5 +250,5 @@ export default function BridgePage() {
 
       <Footer />
     </div>
-  )
+  );
 }

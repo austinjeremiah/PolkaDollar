@@ -16,6 +16,7 @@
     "xcm:deploy": "hardhat run scripts/deploy-xcm-transfer.ts --network hub",
     "xcm:encode": "hardhat run scripts/xcm-encode.ts",
     "xcm:send": "hardhat run scripts/send-xcm-direct.ts --network hub",
+    "xcm:watch": "hardhat run scripts/xcm-watch.ts --network hub",
     "demo:all": "npm run build:rust && npm run compile && npm run demo",
     "clean": "hardhat clean"
   },

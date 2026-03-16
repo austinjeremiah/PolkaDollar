@@ -1,14 +1,18 @@
-import { ethers } from "hardhat";
+import { ApiPromise, WsProvider } from "@polkadot/api";
 
 /**
- * XCM Encoder for Asset Hub Paseo -> Hydration
+ * XCM Encoder for Asset Hub Paseo -> Paseo Relay Chain
  * Generates properly encoded dest and message bytes for XCMTransfer contract
  * 
  * Uses manual SCALE encoding for XCM structures
  */
 
-// Hydration parachain ID on Paseo
-const HYDRATION_PARA_ID = 3001;
+const ASSET_HUB_PASEO_WS = process.env.ASSET_HUB_PASEO_WS || "wss://asset-hub-paseo-rpc.n.dwellir.com";
+const RELAY_BENEFICIARY_ACCOUNT_ID32 =
+  process.env.RELAY_BENEFICIARY_ACCOUNT_ID32 ||
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
+const TELEPORT_AMOUNT = BigInt(process.env.XCM_AMOUNT_PLANCK || "1000000");
+const EXECUTION_FEE = BigInt(process.env.XCM_FEE_PLANCK || "100000");
 
 /**
  * Encode a compact number in SCALE format
@@ -33,41 +37,26 @@ function encodeCompact(value: bigint): Buffer {
 }
 
 /**
- * Encode Parachain ID (u32)
- */
-function encodeParachainId(id: number): Buffer {
-  const buf = Buffer.allocUnsafe(4);
-  buf.writeUInt32LE(id, 0);
-  return buf;
-}
-
-/**
- * Create encoded destination bytes for Hydration
- * V4 MultiLocation: parents=1, interior=X1(Parachain(3001))
+ * Create encoded destination bytes for Relay Chain
+ * V4 MultiLocation: parents=1, interior=Here
+ * Expected bytes: 0x040100
  */
 function encodeDestination(): Buffer {
   const parts: Buffer[] = [];
 
-  // Version tag for V4 (enum variant 4)
+  // Version tag: V4
   parts.push(Buffer.from([4]));
-
-  // parents: 1
+  // parents = 1 (go to parent relay chain)
   parts.push(Buffer.from([1]));
-
-  // interior: X1 (enum variant 1 for 1 junction)
-  parts.push(Buffer.from([1]));
-
-  // Junction: Parachain(3001)
-  // This is enum variant Parachain = 0
-  parts.push(Buffer.from([0])); // Parachain variant
-  parts.push(encodeParachainId(HYDRATION_PARA_ID));
+  // interior = Here
+  parts.push(Buffer.from([0]));
 
   return Buffer.concat(parts);
 }
 
 /**
- * Create encoded message bytes - simplified XCM message
- * Using a minimal valid structure: WithdrawAsset -> BuyExecution -> Transact -> Deposit
+ * Create encoded message bytes for teleport-like flow
+ * Instructions: WithdrawAsset -> BuyExecution -> DepositAsset
  */
 function encodeMessage(): Buffer {
   const parts: Buffer[] = [];
@@ -76,7 +65,7 @@ function encodeMessage(): Buffer {
   parts.push(Buffer.from([4]));
 
   // Number of instructions (compacted)
-  parts.push(encodeCompact(5n)); // 5 instructions
+  parts.push(encodeCompact(3n)); // 3 instructions
 
   // Instruction 1: WithdrawAsset
   parts.push(Buffer.from([0])); // WithdrawAsset variant
@@ -84,36 +73,22 @@ function encodeMessage(): Buffer {
   // Asset location: (parents=0, interior=Here)
   parts.push(Buffer.from([0])); // parents
   parts.push(Buffer.from([0])); // interior: Here variant (no junctions)
-  // Asset amount: Fungible(1000000)
+  // Asset amount
   parts.push(Buffer.from([0])); // Fungible variant
-  parts.push(encodeCompact(1000000n));
+  parts.push(encodeCompact(TELEPORT_AMOUNT));
 
   // Instruction 2: BuyExecution
   parts.push(Buffer.from([1])); // BuyExecution variant
   // fees location: (parents=0, interior=Here)
   parts.push(Buffer.from([0])); // parents
   parts.push(Buffer.from([0])); // interior: Here
-  // fee amount: Fungible(100000)
+  // fee amount
   parts.push(Buffer.from([0])); // Fungible
-  parts.push(encodeCompact(100000n));
+  parts.push(encodeCompact(EXECUTION_FEE));
   // weight limit: Unlimited
   parts.push(Buffer.from([1])); // Unlimited variant
 
-  // Instruction 3: Transact
-  parts.push(Buffer.from([3])); // Transact variant
-  // originKind: SovereignAccount = 1
-  parts.push(Buffer.from([1]));
-  // requireWeightAtMost: { refTime: 1000000000, proofSize: 65536 }
-  parts.push(encodeCompact(1000000000n)); // refTime
-  parts.push(encodeCompact(65536n)); // proofSize
-  // call (encoded bytes): 0x01
-  parts.push(encodeCompact(1n)); // 1 byte
-  parts.push(Buffer.from([0x01]));
-
-  // Instruction 4: RefundSurplus
-  parts.push(Buffer.from([5])); // RefundSurplus variant
-
-  // Instruction 5: DepositAsset
+  // Instruction 3: DepositAsset
   parts.push(Buffer.from([11])); // DepositAsset variant
   // assets: Wild(All)
   parts.push(Buffer.from([2])); // Wild variant
@@ -123,20 +98,82 @@ function encodeMessage(): Buffer {
   parts.push(Buffer.from([1])); // interior: X1
   parts.push(Buffer.from([3])); // AccountId32 junction variant
   parts.push(Buffer.from([0])); // network: None
-  // account: 32 zero bytes
-  parts.push(Buffer.alloc(32, 0));
+  // relay-chain beneficiary account id32
+  parts.push(Buffer.from(RELAY_BENEFICIARY_ACCOUNT_ID32.slice(2), "hex"));
 
   return Buffer.concat(parts);
 }
 
+async function printTeleportExtrinsicPreview() {
+  try {
+    const provider = new WsProvider(ASSET_HUB_PASEO_WS);
+    const api = await ApiPromise.create({ provider });
+
+    const destination = {
+      V4: {
+        parents: 1,
+        interior: "Here",
+      },
+    };
+
+    const beneficiary = {
+      V4: {
+        parents: 0,
+        interior: {
+          X1: [
+            {
+              AccountId32: {
+                network: null,
+                id: RELAY_BENEFICIARY_ACCOUNT_ID32,
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    const assets = {
+      V4: [
+        {
+          id: {
+            Concrete: {
+              parents: 0,
+              interior: "Here",
+            },
+          },
+          fun: {
+            Fungible: TELEPORT_AMOUNT,
+          },
+        },
+      ],
+    };
+
+    const tx = api.tx.polkadotXcm.limitedTeleportAssets(
+      destination,
+      beneficiary,
+      assets,
+      0,
+      "Unlimited"
+    );
+
+    console.log("\n📦 limitedTeleportAssets() call hex preview:");
+    console.log(tx.method.toHex());
+
+    await api.disconnect();
+  } catch (error) {
+    console.log("\n⚠️ Could not build limitedTeleportAssets preview from WS metadata:");
+    console.log((error as Error).message);
+  }
+}
+
 async function main() {
-  console.log("🚀 XCM Encoder for Asset Hub Paseo -> Hydration\n");
+  console.log("🚀 XCM Encoder for Asset Hub Paseo -> Relay Chain\n");
 
   try {
     const destHex = encodeDestination().toString("hex");
     const messageHex = encodeMessage().toString("hex");
 
-    console.log("✅ Encoded Destination:");
+    console.log("✅ Encoded Destination (Relay Chain):");
     console.log(`0x${destHex}`);
     console.log(`   (${destHex.length / 2} bytes)\n`);
 
@@ -174,6 +211,8 @@ const tx = await xcmTransfer.sendXcm(
 
 const receipt = await tx.wait();
 console.log("XCM sent:", receipt?.hash);`);
+
+    await printTeleportExtrinsicPreview();
 
     console.log("\n✅ Done! Copy the hex values above into your contract call.\n");
   } catch (error) {
