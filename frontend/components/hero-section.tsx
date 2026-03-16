@@ -17,7 +17,7 @@ export function HeroSection() {
           transition={{ duration: 0.7, ease }}
           className="font-pixel text-4xl sm:text-6xl lg:text-7xl xl:text-8xl tracking-tight text-foreground mb-2 select-none"
         >
-          DEPLOY. SCALE.
+          POLKA $
         </motion.h1>
 
         {/* Central Workflow Diagram */}
