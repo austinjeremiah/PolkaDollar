@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { JetBrains_Mono } from 'next/font/google'
 import { GeistPixelGrid } from 'geist/font/pixel'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
 
 import './globals.css'
 
@@ -11,7 +12,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Brutalist AI SaaS Landing Page Template | Engineering-Grade Dark UI Kit',
+  title: 'Polkadollar Protocol',
   description:
     'A brutalist, engineering-themed landing page template for AI infrastructure and SaaS products. Features Geist Pixel typography, dot-grid backgrounds, live terminal animations, scramble-text micro-interactions, bento feature grids, isometric 3D illustrations, and a fully responsive dark industrial design system. Built with Next.js 16, Tailwind CSS, and Framer Motion.',
   keywords: [
@@ -81,8 +82,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jetbrainsMono.variable} ${GeistPixelGrid.variable}`} suppressHydrationWarning>
       <body className="font-mono antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           {children}
+          <Toaster richColors theme="dark" />
         </ThemeProvider>
       </body>
     </html>

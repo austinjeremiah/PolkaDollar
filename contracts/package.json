@@ -5,6 +5,7 @@
   "scripts": {
     "build:rust": "cd rust-contract && cargo build --release && polkatool link --strip target/riscv64emac-unknown-none-polkavm/release/fibonacci -o fibonacci.polkavm",
     "build:rust:risk": "cd rust-contract && cargo build --release --bin risk_engine && polkatool link --strip target/riscv64emac-unknown-none-polkavm/release/risk_engine -o risk_engine.polkavm",
+    "upgrade:risk-engine": "hardhat run scripts/upgrade-risk-engine.ts --network hub",
     "compile": "hardhat compile",
     "demo": "hardhat run scripts/demo.ts --network hub",
     "oracle:coingecko": "hardhat run scripts/oracle-coingecko.ts --network hub",

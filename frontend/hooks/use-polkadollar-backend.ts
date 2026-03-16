@@ -304,6 +304,32 @@ export function usePolkadollarBackend() {
     [assertWriteContext, getSigner, getTxOverrides, parsePositiveAmount, toReadableError, withLoading]
   );
 
+  const liquidatePosition = useCallback(
+    async (target: string): Promise<TxResult> => {
+      return withLoading(async () => {
+        try {
+          if (!ethers.isAddress(target)) {
+            throw new Error("Invalid target address");
+          }
+
+          const signer = await getSigner();
+          await assertWriteContext(signer, config.vaultAddress, "CollateralVault");
+          const provider = signer.provider;
+          if (!provider) throw new Error("No provider connected");
+          const overrides = await getTxOverrides(provider, BigInt(500000));
+          const vault = new ethers.Contract(config.vaultAddress, ["function liquidate(address user)"], signer);
+
+          const tx = await vault.liquidate(target, overrides);
+          const receipt = await tx.wait();
+          return { hash: tx.hash, receipt };
+        } catch (err) {
+          throw toReadableError(err, "Liquidation failed");
+        }
+      });
+    },
+    [assertWriteContext, getSigner, getTxOverrides, toReadableError, withLoading]
+  );
+
   const getVaultState = useCallback(
     async (address: string): Promise<VaultState> => {
       const provider = getReadProvider();
@@ -475,6 +501,7 @@ export function usePolkadollarBackend() {
     // Vault
     depositCollateral,
     withdrawCollateral,
+    liquidatePosition,
     getVaultState,
 
     // pUSD

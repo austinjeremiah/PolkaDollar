@@ -8,8 +8,9 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     unsafe { core::arch::asm!("unimp", options(noreturn)) }
 }
 
-const SEL_PUSH_PRICE:  [u8; 4] = [0x17, 0xb6, 0xc4, 0x47];
-const SEL_ASSESS_RISK: [u8; 4] = [0xb5, 0xa3, 0xd2, 0x2a];
+const SEL_PUSH_PRICE:   [u8; 4] = [0x17, 0xb6, 0xc4, 0x47];
+const SEL_ASSESS_RISK:  [u8; 4] = [0xb5, 0xa3, 0xd2, 0x2a];
+const SEL_GET_VARIANCE: [u8; 4] = [0x3e, 0x09, 0xe7, 0x77];
 
 const KEY_VARIANCE:   [u8; 32] = key(0x01);
 const KEY_PREV_PRICE: [u8; 32] = key(0x02);
@@ -79,6 +80,12 @@ extern "C" fn call() {
         let mut out = [0u8; 64];
         out[31] = regime;
         out[48..64].copy_from_slice(&ratio.to_be_bytes());
+        api::return_value(ReturnFlags::empty(), &out);
+    } else if sel == SEL_GET_VARIANCE {
+        // Return the raw EWMA variance as ABI-encoded uint256
+        let var = load(&KEY_VARIANCE);
+        let mut out = [0u8; 32];
+        out[16..32].copy_from_slice(&var.to_be_bytes());
         api::return_value(ReturnFlags::empty(), &out);
     } else {
         api::return_value(ReturnFlags::REVERT, b"bad selector");
