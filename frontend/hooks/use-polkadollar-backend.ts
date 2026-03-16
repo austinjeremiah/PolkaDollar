@@ -98,9 +98,6 @@ export function usePolkadollarBackend() {
   }, [getInjectedProvider]);
 
   const getReadProvider = useCallback(() => {
-    if (typeof window !== "undefined" && window.ethereum) {
-      return new ethers.BrowserProvider(window.ethereum);
-    }
     return new ethers.JsonRpcProvider(config.rpcUrl);
   }, []);
 

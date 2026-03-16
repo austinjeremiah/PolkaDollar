@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { usePolkadollarBackend } from "@/hooks/use-polkadollar-backend";
 
 const DEFAULT_XCM_MESSAGE =
   process.env.NEXT_PUBLIC_XCM_MESSAGE ||
-  "0x040c000400000002093d0001000000821a0600010b0200000103000000000000000000000000000000000000000000000000000000000000000000";
+  "0x040c000400000002093d0001000000821a06000b0200000103000000000000000000000000000000000000000000000000000000000000000000";
 
 function shortAddress(address: string): string {
   if (!address) return "";
@@ -51,43 +51,108 @@ export default function BridgePage() {
   const [healthFactor, setHealthFactor] = useState("-");
   const [pusdBalance, setPusdBalance] = useState("0");
   const [dotPrice, setDotPrice] = useState("0");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
   const walletLabel = useMemo(() => (wallet ? shortAddress(wallet) : "Connect MetaMask"), [wallet]);
+
+  const onRefresh = useCallback(
+    async (address = wallet, options?: { silent?: boolean }) => {
+      if (!address) {
+        if (!options?.silent) {
+          setStatus("Connect wallet first");
+        }
+        return;
+      }
+
+      clearError();
+      if (!options?.silent) {
+        setStatus("Refreshing on-chain state...");
+      }
+
+      try {
+        const [vaultStateResult, balanceResult, priceResult] = await Promise.allSettled([
+          getVaultState(address),
+          getPusdBalance(address),
+          getCurrentPrice(),
+        ]);
+
+        const refreshErrors: string[] = [];
+        let successCount = 0;
+
+        if (vaultStateResult.status === "fulfilled") {
+          setCollateral(vaultStateResult.value.collateral);
+          setDebt(vaultStateResult.value.debt);
+          setHealthFactor(vaultStateResult.value.healthFactor);
+          successCount += 1;
+        } else {
+          refreshErrors.push(`vault: ${vaultStateResult.reason instanceof Error ? vaultStateResult.reason.message : "failed"}`);
+        }
+
+        if (balanceResult.status === "fulfilled") {
+          setPusdBalance(balanceResult.value);
+          successCount += 1;
+        } else {
+          refreshErrors.push(`pUSD: ${balanceResult.reason instanceof Error ? balanceResult.reason.message : "failed"}`);
+        }
+
+        if (priceResult.status === "fulfilled") {
+          setDotPrice(priceResult.value);
+          successCount += 1;
+        } else {
+          refreshErrors.push(`price: ${priceResult.reason instanceof Error ? priceResult.reason.message : "failed"}`);
+        }
+
+        setLastUpdatedAt(new Date().toLocaleTimeString());
+
+        if (successCount === 0) {
+          setStatus(`Refresh failed: ${refreshErrors.join(" | ")}`);
+        } else if (refreshErrors.length > 0) {
+          setStatus(`Partial refresh (${successCount}/3): ${refreshErrors.join(" | ")}`);
+        } else if (!options?.silent) {
+          setStatus("State refreshed");
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Refresh failed";
+        setStatus(`Refresh failed: ${message}`);
+      }
+    },
+    [clearError, getCurrentPrice, getPusdBalance, getVaultState, wallet]
+  );
 
   async function onConnectWallet() {
     clearError();
     try {
       const addr = await connectWallet();
       setWallet(addr);
-      setStatus(`Connected ${shortAddress(addr)}`);
+      setStatus(`Connected ${shortAddress(addr)}. Syncing position...`);
+      await onRefresh(addr);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Wallet connection failed";
       setStatus(message);
     }
   }
 
-  async function onRefresh(address = wallet) {
-    if (!address) return;
+  async function onSwitchNetwork() {
     clearError();
-    setStatus("Refreshing on-chain state...");
-
     try {
-      const [vaultState, balance, price] = await Promise.all([
-        getVaultState(address),
-        getPusdBalance(address),
-        getCurrentPrice(),
-      ]);
-
-      setCollateral(vaultState.collateral);
-      setDebt(vaultState.debt);
-      setHealthFactor(vaultState.healthFactor);
-      setPusdBalance(balance);
-      setDotPrice(price);
-      setStatus("State refreshed");
-    } catch {
-      setStatus("Refresh failed");
+      await switchNetwork();
+      setStatus("Network ready. Syncing position...");
+      await onRefresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Network switch failed";
+      setStatus(message);
     }
   }
+
+  useEffect(() => {
+    if (!wallet) return;
+
+    const intervalId = setInterval(() => {
+      void onRefresh(wallet, { silent: true });
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [wallet, onRefresh]);
 
   async function runAction(label: string, action: () => Promise<{ hash: string }>) {
     clearError();
@@ -150,7 +215,7 @@ export default function BridgePage() {
               <Button onClick={onConnectWallet} variant="outline" disabled={loading}>
                 {walletLabel}
               </Button>
-              <Button onClick={() => switchNetwork()} variant="outline" disabled={loading}>
+              <Button onClick={onSwitchNetwork} variant="outline" disabled={loading}>
                 Switch to Paseo
               </Button>
               <Button onClick={() => onRefresh()} disabled={loading || !wallet}>
@@ -172,6 +237,7 @@ export default function BridgePage() {
                 <p>Debt: {debt} pUSD</p>
                 <p>pUSD Balance: {pusdBalance}</p>
                 <p>Health Factor: {healthFactor}</p>
+                <p>Last Updated: {lastUpdatedAt || "-"}</p>
               </CardContent>
             </Card>
 
@@ -226,7 +292,7 @@ export default function BridgePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">XCM Send to Hydration</CardTitle>
+                <CardTitle className="text-lg">XCM Send to Paseo Relay Chain</CardTitle>
                 <CardDescription>Direct precompile route using configured destination and message bytes.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">

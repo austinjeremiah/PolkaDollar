@@ -23,8 +23,8 @@ All backend services deployed, tested, and ready for frontend integration.
 | Component | Value | Purpose |
 |-----------|-------|---------|
 | **XCM Precompile** | `0x000000000000000000000000000000000000A000` | EVM XCM interface |
-| **Hydration Dest** | `0x04010100b90b0000` | Encoded destination (V4) |
-| **XCM Message** | `0x0414000400...0000` | Pre-encoded message for Hydration |
+| **Relay Dest** | `0x040100` | Encoded relay destination (V4) |
+| **XCM Message** | `0x040c0004...0000` | Pre-encoded relay-route message |
 
 ---
 
@@ -47,6 +47,19 @@ pnpm oracle:sync
 # or with custom pair:
 PRICE_FEED_ADDRESS=0x... RISK_ENGINE_ADDRESS=0x... npm run oracle:sync
 ```
+
+### 🔁 Oracle Daemon (Continuous Updates)
+```bash
+npm run oracle:daemon
+# default interval: 60s, override with:
+ORACLE_INTERVAL_SECONDS=300 npm run oracle:daemon
+```
+
+### ✅ Oracle Once (Single Tick)
+```bash
+npm run oracle:once
+```
+
 **What it does:**
 - Fetches current price from CoinGecko (polkadot/usd)
 - Updates PriceFeed contract
@@ -72,13 +85,13 @@ VAULT_ADDRESS=0x... PUSD_ADDRESS=0x... npm run test:e2e
 **Generate XCM Bytes:**
 ```bash
 pnpm xcm:encode
-# Outputs: destination and message hex for Hydration
+# Outputs: destination and message hex for relay destination
 ```
 
 **Send XCM Message:**
 ```bash
 pnpm xcm:send
-# Routes message to Hydration parachain via precompile
+# Routes message via precompile toward relay destination
 ```
 
 **Find XCM Precompile:**
@@ -116,8 +129,8 @@ const xcmInterface = new ethers.Interface(["function send(bytes dest, bytes mess
 const tx = await signer.sendTransaction({
   to: "0x000000000000000000000000000000000000A000",
   data: xcmInterface.encodeFunctionData("send", [
-    "0x04010100b90b0000",           // Hydration destination
-    "0x0414000400..."               // Pre-encoded message
+    "0x040100",                     // Relay destination
+    "0x040c0004..."                 // Pre-encoded message
   ])
 });
 ```
@@ -155,7 +168,8 @@ NEXT_PUBLIC_PUSD_ADDRESS=0x876df4BBD21ec38f78D6AEbF9687a89445821BE7
 NEXT_PUBLIC_PRICE_FEED_ADDRESS=0xCDe170C92E281757aD961Ba47B33DFacd827a761
 NEXT_PUBLIC_RISK_ENGINE_ADDRESS=0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B
 NEXT_PUBLIC_XCM_PRECOMPILE=0x000000000000000000000000000000000000A000
-NEXT_PUBLIC_XCM_DEST_HYDRATION=0x04010100b90b0000
+NEXT_PUBLIC_XCM_DEST_HYDRATION=0x040100
+NEXT_PUBLIC_XCM_MESSAGE=0x040c000400000002093d0001000000821a06000b0200000103000000000000000000000000000000000000000000000000000000000000000000
 NEXT_PUBLIC_RPC_URL=https://eth-rpc-testnet.polkadot.io/
 NEXT_PUBLIC_CHAIN_ID=420420417
 NEXT_PUBLIC_CHAIN_NAME=Polkadot Hub TestNet
@@ -183,7 +197,7 @@ NEXT_PUBLIC_EXPLORER_URL=https://blockscout-testnet.polkadot.io/
 
 ✅ All backend contracts deployed and tested  
 ✅ Oracle system feeding live prices  
-✅ XCM routing to Hydration working  
+✅ XCM routing via precompile working  
 ✅ Commerce vault mechanics validated  
 ✅ Contract ABIs available in `typechain-types/`
 

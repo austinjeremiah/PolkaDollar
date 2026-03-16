@@ -9,6 +9,8 @@
     "demo": "hardhat run scripts/demo.ts --network hub",
     "oracle:coingecko": "hardhat run scripts/oracle-coingecko.ts --network hub",
     "oracle:sync": "hardhat run scripts/oracle-sync.ts --network hub",
+    "oracle:once": "ORACLE_ONCE=true hardhat run scripts/oracle-sync.ts --network hub",
+    "oracle:daemon": "ORACLE_ONCE=false ORACLE_INTERVAL_SECONDS=60 hardhat run scripts/oracle-sync.ts --network hub",
     "deploy:backend": "hardhat run scripts/deploy-backend.ts --network hub",
     "wire:existing:vault": "hardhat run scripts/wire-existing-vault.ts --network hub",
     "test:e2e": "hardhat run scripts/e2e-backend.ts --network hub",
