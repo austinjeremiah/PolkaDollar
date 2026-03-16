@@ -24,6 +24,37 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## XCM Bridge Page
+
+The bridge UI is available at `/bridge`.
+
+It uses two connections:
+
+- MetaMask + `ethers` for EVM contract calls
+- `@polkadot/api` WebSocket for SCALE XCM encoding
+
+Create `frontend/.env.local` with:
+
+```bash
+NEXT_PUBLIC_EVM_RPC_URL="https://testnet-passet-hub-eth-rpc.polkadot.io"
+NEXT_PUBLIC_WS_RPC_URL="wss://asset-hub-paseo-rpc.dwellir.com"
+NEXT_PUBLIC_XCM_TRANSFER_ADDRESS="0xYourXcmTransferOrMockAddress"
+```
+
+Then run:
+
+```bash
+pnpm dev
+```
+
+Bridge flow:
+
+1. Open `/bridge`
+2. Connect MetaMask
+3. Enter recipient SS58 + amount
+4. Build XCM bytes
+5. Send through `XCMTransfer` (or `MockXCMTransfer` fallback)
+
 ## Learn More
 
 To learn more, take a look at the following resources:

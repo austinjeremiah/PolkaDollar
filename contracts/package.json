@@ -4,16 +4,33 @@
   "description": "Demo 03: EVM Solidity contract calls Rust PVM contract for Fibonacci computation",
   "scripts": {
     "build:rust": "cd rust-contract && cargo build --release && polkatool link --strip target/riscv64emac-unknown-none-polkavm/release/fibonacci -o fibonacci.polkavm",
+    "build:rust:risk": "cd rust-contract && cargo build --release --bin risk_engine && polkatool link --strip target/riscv64emac-unknown-none-polkavm/release/risk_engine -o risk_engine.polkavm",
     "compile": "hardhat compile",
     "demo": "hardhat run scripts/demo.ts --network hub",
+    "oracle:coingecko": "hardhat run scripts/oracle-coingecko.ts --network hub",
+    "oracle:sync": "hardhat run scripts/oracle-sync.ts --network hub",
+    "deploy:backend": "hardhat run scripts/deploy-backend.ts --network hub",
+    "wire:existing:vault": "hardhat run scripts/wire-existing-vault.ts --network hub",
+    "test:e2e": "hardhat run scripts/e2e-backend.ts --network hub",
+    "xcm:find-precompile": "hardhat run scripts/find-xcm-precompile.ts --network hub",
+    "xcm:deploy": "hardhat run scripts/deploy-xcm-transfer.ts --network hub",
+    "xcm:encode": "hardhat run scripts/xcm-encode.ts",
+    "xcm:send": "hardhat run scripts/send-xcm-direct.ts --network hub",
     "demo:all": "npm run build:rust && npm run compile && npm run demo",
     "clean": "hardhat clean"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@polkadot/api": "^16.5.4",
+    "@polkadot/types": "^16.5.4",
+    "@polkadot/util": "^14.0.2",
+    "@polkadot/util-crypto": "^14.0.2",
     "@types/node": "^20.0.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.17",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1"
   }
 }

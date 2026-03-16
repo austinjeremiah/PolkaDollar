@@ -52,6 +52,46 @@ npm run compile      # compile FibCaller.sol → EVM
 npm run demo         # deploy both + run cross-VM calls
 ```
 
+## Backend (Vault + pUSD + Oracle)
+
+This repo now includes production backend contracts and scripts for the full flow:
+
+- `CollateralVault.sol`
+- `PolkaDollar.sol`
+- `PriceFeed.sol`
+- `XCMTransfer.sol` / `MockXCMTransfer.sol`
+
+### 1) Deploy backend contracts (uses existing Rust risk engine)
+
+```bash
+RISK_ENGINE_ADDRESS=0x... npm run deploy:backend
+```
+
+### 2) Oracle tick (CoinGecko -> PriceFeed + RiskEngine)
+
+```bash
+PRICE_FEED_ADDRESS=0x... \
+RISK_ENGINE_ADDRESS=0x... \
+ORACLE_ONCE=true \
+npm run oracle:sync
+```
+
+### 3) End-to-end lifecycle test
+
+```bash
+VAULT_ADDRESS=0x... \
+PUSD_ADDRESS=0x... \
+PRICE_FEED_ADDRESS=0x... \
+RISK_ENGINE_ADDRESS=0x... \
+npm run test:e2e
+```
+
+### 4) Wire an already deployed legacy vault (if `pusd` is still zero)
+
+```bash
+VAULT_ADDRESS=0x... npm run wire:existing:vault
+```
+
 ## Expected Output
 
 ```

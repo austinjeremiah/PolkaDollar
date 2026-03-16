@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Cpu } from "lucide-react"
 import { motion } from "framer-motion"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -29,16 +30,20 @@ export function Navbar() {
 
           {/* Center nav links */}
           <div className="hidden md:flex items-center gap-8">
-            {["Platform", "Enterprise", "Resources", "Company"].map((link, i) => (
+            {[
+              { label: "Home", href: "/" },
+              { label: "Bridge", href: "/bridge" },
+              { label: "Docs", href: "#" },
+              { label: "Team", href: "#" },
+            ].map((link, i) => (
               <motion.a
-                key={link}
-                href="#"
+                key={link.label}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors duration-200"
               >
-                {link}
+                <Link href={link.href}>{link.label}</Link>
               </motion.a>
             ))}
           </div>

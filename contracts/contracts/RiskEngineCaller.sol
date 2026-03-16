@@ -16,10 +16,10 @@ pragma solidity ^0.8.28;
  */
 
 interface IRiskEngine {
-    // selector: 0x830b50e4  — verify with: npx ts-node scripts/selectors.ts
+    // selector: 0x17b6c447  — verify with: npx ts-node scripts/selectors.ts
     function pushPrice(uint256 price) external;
 
-    // selector: 0x2b8d7333
+    // selector: 0xb5a3d22a
     // returns regime (0=LOW,1=MEDIUM,2=HIGH,3=EXTREME) and ratio in bps (13000=130%)
     function assessRisk() external returns (uint8 regime, uint256 ratio);
 }
