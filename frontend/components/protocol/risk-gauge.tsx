@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 type Props = {
   regime: "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
   volatilityPct: number;
@@ -18,6 +16,29 @@ const ANGLES: Record<Props["regime"], number> = {
 
 export function RiskGauge({ regime, volatilityPct, ratioPct, compact = false }: Props) {
   const size = compact ? 240 : 320;
+  const angle = (ANGLES[regime] * Math.PI) / 180;
+
+  // Needle goes a bit behind the center so the hub circle visually clamps it.
+  const backLen = 12;
+  const tipLen = 108;
+  const headLen = 16;
+  const headHalfWidth = 7;
+
+  const dirX = Math.sin(angle);
+  const dirY = -Math.cos(angle);
+  const perpX = -dirY;
+  const perpY = dirX;
+
+  const startX = -dirX * backLen;
+  const startY = -dirY * backLen;
+  const tipX = dirX * tipLen;
+  const tipY = dirY * tipLen;
+  const baseX = tipX - dirX * headLen;
+  const baseY = tipY - dirY * headLen;
+  const leftX = baseX + perpX * headHalfWidth;
+  const leftY = baseY + perpY * headHalfWidth;
+  const rightX = baseX - perpX * headHalfWidth;
+  const rightY = baseY - perpY * headHalfWidth;
 
   return (
     <div className="rounded-lg border border-white/10 bg-[#151922] p-4">
@@ -36,9 +57,8 @@ export function RiskGauge({ regime, volatilityPct, ratioPct, compact = false }: 
           <path d="M30,180 A150,150 0 0,1 330,180" fill="none" stroke="url(#riskArc)" strokeWidth="18" strokeLinecap="round" />
 
           <g transform="translate(180 180)">
-            <motion.g animate={{ rotate: ANGLES[regime] }} transition={{ type: "spring", stiffness: 90, damping: 14 }}>
-              <line x1="0" y1="0" x2="0" y2="-122" stroke="#d4d4d8" strokeWidth="4" strokeLinecap="round" />
-            </motion.g>
+            <line x1={startX} y1={startY} x2={tipX} y2={tipY} stroke="#d4d4d8" strokeWidth="4" strokeLinecap="round" />
+            <path d={`M${tipX},${tipY} L${leftX},${leftY} L${rightX},${rightY} Z`} fill="#e5e7eb" />
             <circle cx="0" cy="0" r="8" fill="#fafafa" />
           </g>
 
