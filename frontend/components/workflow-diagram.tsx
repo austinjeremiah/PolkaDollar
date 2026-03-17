@@ -3,8 +3,8 @@
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 
-const LEFT_LABELS = ["Train", "Package", "Version"]
-const RIGHT_LABELS = ["Route", "Deploy", "Observe"]
+const LEFT_LABELS = ["FetchPrice", "UpdateFeed", "PushPrice"]
+const RIGHT_LABELS = ["AssessRisk", "CheckVault", "MintBurn"]
 
 function PillLabel({
   label,
@@ -26,7 +26,7 @@ function PillLabel({
       <rect
         x={x}
         y={y}
-        width={80}
+        width={104}
         height={26}
         rx={13}
         fill="none"
@@ -34,7 +34,7 @@ function PillLabel({
         strokeWidth={1.5}
       />
       <text
-        x={x + 40}
+        x={x + 52}
         y={y + 17}
         textAnchor="middle"
         fill="hsl(var(--foreground))"
@@ -69,7 +69,7 @@ export function WorkflowDiagram() {
         viewBox="0 0 800 200"
         className="w-full h-auto"
         role="img"
-        aria-label="Workflow diagram showing connected deployment stages: Train, Package, Version, Route, Deploy, Observe"
+        aria-label="Workflow diagram showing Polkadollar execution flow: FetchPrice, UpdateFeed, PushPrice, AssessRisk, CheckVault, MintBurn"
       >
         {/* Left lines from center to left labels */}
         {LEFT_LABELS.map((_, i) => {
@@ -80,7 +80,7 @@ export function WorkflowDiagram() {
               key={`left-line-${i}`}
               x1={centerX - 40}
               y1={centerY}
-              x2={pillX + 80}
+              x2={pillX + 104}
               y2={pillY + 13}
               stroke="hsl(var(--border))"
               strokeWidth={1}
@@ -120,9 +120,9 @@ export function WorkflowDiagram() {
               key={`left-packet-${i}`}
               r={3}
               fill="#ea580c"
-              initial={{ cx: pillX + 80, cy: pillY + 13 }}
+              initial={{ cx: pillX + 104, cy: pillY + 13 }}
               animate={{
-                cx: [pillX + 80, centerX - 40],
+                cx: [pillX + 104, centerX - 40],
                 cy: [pillY + 13, centerY],
               }}
               transition={{

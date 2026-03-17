@@ -114,7 +114,7 @@ export function AboutSection() {
         className="flex items-center gap-4 mb-8"
       >
         <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
-          {"// SECTION: ABOUT_SYS.INT"}
+          {"// SECTION: ABOUT_POLKADOLLAR"}
         </span>
         <div className="flex-1 border-t border-border" />
         <BlinkDot />

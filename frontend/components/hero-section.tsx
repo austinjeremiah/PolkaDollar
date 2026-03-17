@@ -3,6 +3,7 @@
 import { WorkflowDiagram } from "@/components/workflow-diagram"
 import { ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -38,7 +39,7 @@ export function HeroSection() {
           className="font-pixel text-4xl sm:text-6xl lg:text-7xl xl:text-8xl tracking-tight text-foreground mb-4 select-none"
           aria-hidden="true"
         >
-          ROUTE.
+          PVM
         </motion.h1>
 
         {/* Sub-headline */}
@@ -48,31 +49,33 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.45, ease }}
           className="text-xs lg:text-sm text-muted-foreground max-w-md mb-6 leading-relaxed font-mono"
         >
-          SYS.INT is the deterministic deployment layer between your models and your users. Sub-5ms inference. Global edge routing. Full operational control.
+          A cross-chain, volatility-aware lending protocol that turns DOT into a composable synthetic dollar.
         </motion.p>
 
         {/* CTA Button */}
-        <motion.button
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6, ease }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className="group flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase"
+          className="group"
         >
-          <span className="flex items-center justify-center w-10 h-10 bg-[#ea580c]">
-            <motion.span
-              className="inline-flex"
-              whileHover={{ x: 3 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >
-              <ArrowRight size={16} strokeWidth={2} className="text-background" />
-            </motion.span>
-          </span>
-          <span className="px-5 py-2.5">
-            Request a Demo
-          </span>
-        </motion.button>
+          <Link href="/dashboard" className="flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase">
+            <span className="flex items-center justify-center w-10 h-10 bg-[#ea580c]">
+              <motion.span
+                className="inline-flex"
+                whileHover={{ x: 3 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              >
+                <ArrowRight size={16} strokeWidth={2} className="text-background" />
+              </motion.span>
+            </span>
+            <span className="px-5 py-2.5">
+              Get Started
+            </span>
+          </Link>
+        </motion.div>
       </div>
     </section>
   )

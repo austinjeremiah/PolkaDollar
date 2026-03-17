@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer";
 import { GlitchMarquee } from "@/components/glitch-marquee";
 import { HeroSection } from "@/components/hero-section";
 import { Navbar } from "@/components/navbar";
-import { PricingSection } from "@/components/pricing-section";
+
 
 export default function Page() {
   return (
@@ -13,7 +13,6 @@ export default function Page() {
       <HeroSection />
       <FeatureGrid />
       <AboutSection />
-      <PricingSection />
       <GlitchMarquee />
       <Footer />
     </main>
