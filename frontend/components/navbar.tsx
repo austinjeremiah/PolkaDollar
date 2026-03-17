@@ -6,6 +6,14 @@ import { motion } from "framer-motion"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
+  const links = [
+    { label: "Home", href: "/" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Vault", href: "/vault" },
+    { label: "Bridge", href: "/bridge" },
+    { label: "Risk Monitor", href: "/risk-monitor" },
+  ]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -30,21 +38,18 @@ export function Navbar() {
 
           {/* Center nav links */}
           <div className="hidden md:flex items-center gap-8">
-            {[
-              { label: "Home", href: "/" },
-              { label: "Bridge", href: "/bridge" },
-              { label: "Docs", href: "#" },
-              { label: "Team", href: "#" },
-            ].map((link, i) => (
-              <motion.a
+            {links.map((link, i) => (
+              <motion.div
                 key={link.label}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors duration-200"
+                className="text-xs font-mono tracking-widest uppercase"
               >
-                <Link href={link.href}>{link.label}</Link>
-              </motion.a>
+                <Link href={link.href} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+                  {link.label}
+                </Link>
+              </motion.div>
             ))}
           </div>
 
