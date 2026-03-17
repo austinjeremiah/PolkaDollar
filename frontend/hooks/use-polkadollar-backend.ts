@@ -9,7 +9,7 @@ type BackendConfig = {
   priceFeedAddress: string;
   riskEngineAddress: string;
   xcmPrecompile: string;
-  xcmDestHydration: string;
+  xcmDestination: string;
   rpcUrl: string;
   chainId: number;
   chainName: string;
@@ -61,7 +61,7 @@ const config: BackendConfig = {
   priceFeedAddress: process.env.NEXT_PUBLIC_PRICE_FEED_ADDRESS || "0xCDe170C92E281757aD961Ba47B33DFacd827a761",
   riskEngineAddress: process.env.NEXT_PUBLIC_RISK_ENGINE_ADDRESS || "0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B",
   xcmPrecompile: process.env.NEXT_PUBLIC_XCM_PRECOMPILE || "0x000000000000000000000000000000000000A000",
-  xcmDestHydration: process.env.NEXT_PUBLIC_XCM_DEST_HYDRATION || "0x040100",
+  xcmDestination: process.env.NEXT_PUBLIC_XCM_DEST_HYDRATION || "0x040100",
   rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://eth-rpc-testnet.polkadot.io/",
   chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID || "420420417"),
   chainName: process.env.NEXT_PUBLIC_CHAIN_NAME || "Polkadot Hub TestNet",
@@ -392,10 +392,13 @@ export function usePolkadollarBackend() {
       return ethers.formatEther(price); // Convert from 18 decimals
   }, [getReadProvider]);
 
-  const sendXcmToHydration = useCallback(
-    async (messageHex: string): Promise<TxResult> => {
+  const sendXcm = useCallback(
+    async (destHex: string, messageHex: string): Promise<TxResult> => {
       return withLoading(async () => {
         try {
+          if (!ethers.isHexString(destHex)) {
+            throw new Error("Destination must be a valid hex string");
+          }
           if (!ethers.isHexString(messageHex)) {
             throw new Error("Message must be a valid hex string");
           }
@@ -413,7 +416,7 @@ export function usePolkadollarBackend() {
           const tx = await signer.sendTransaction({
             to: config.xcmPrecompile,
             data: xcmInterface.encodeFunctionData("send", [
-              config.xcmDestHydration,
+              destHex,
               messageHex,
             ]),
             ...overrides,
@@ -427,6 +430,11 @@ export function usePolkadollarBackend() {
       });
     },
     [assertWriteContext, getSigner, getTxOverrides, toReadableError, withLoading]
+  );
+
+  const sendXcmToHydration = useCallback(
+    async (messageHex: string): Promise<TxResult> => sendXcm(config.xcmDestination, messageHex),
+    [config.xcmDestination, sendXcm]
   );
 
   const ensureExpectedNetwork = useCallback(async () => {
@@ -513,6 +521,7 @@ export function usePolkadollarBackend() {
     getCurrentPrice,
 
     // XCM
+    sendXcm,
     sendXcmToHydration,
 
     // Utility
@@ -526,7 +535,7 @@ export function usePolkadollarBackend() {
       riskEngine: config.riskEngineAddress,
       xcmPrecompile: config.xcmPrecompile,
     },
-    xcmDestHydration: config.xcmDestHydration,
+    xcmDestHydration: config.xcmDestination,
     chainId: config.chainId,
   };
 }

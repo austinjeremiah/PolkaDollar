@@ -49,7 +49,7 @@ export default function DashboardPage() {
         <Card className={`border ${regimeBg(riskState.regime)} bg-[#141925]`}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Risk Regime</CardTitle>
-            <CardDescription className="text-current/70">VOn-chain EWMA variance</CardDescription>
+            <CardDescription className="text-current/70">On-chain EWMA variance</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{riskState.regime}</p>

@@ -39,7 +39,7 @@ type RatioPoint = {
   volatilityPct: number;
 };
 
-type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "delivered" | "failed";
+type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "failed";
 
 type ProtocolContextValue = {
   loading: boolean;
@@ -65,7 +65,7 @@ type ProtocolContextValue = {
   withdrawCollateral: (amount: string) => Promise<void>;
   mintPusd: (amount: string) => Promise<void>;
   burnPusd: (amount: string) => Promise<void>;
-  sendCrossChain: (messageHex: string) => Promise<void>;
+  sendCrossChain: (destHex: string, messageHex: string) => Promise<void>;
   liquidatePosition: (target: string) => Promise<void>;
   getVaultStateFor: (address: string) => Promise<{ collateral: string; debt: string; healthFactor: string }>;
 };
@@ -417,20 +417,18 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     await executeAction("Liquidate", () => backend.liquidatePosition(target));
   }, [backend, executeAction]);
 
-  const sendCrossChain = useCallback(async (messageHex: string) => {
+  const sendCrossChain = useCallback(async (destHex: string, messageHex: string) => {
     setBridgeStatus("encoding");
     await new Promise((resolve) => setTimeout(resolve, 350));
     setBridgeStatus("submitting");
 
     await executeAction("XCM send", async () => {
-      const result = await backend.sendXcmToHydration(messageHex);
+      const result = await backend.sendXcm(destHex, messageHex);
       setBridgeStatus("confirming");
       return result;
     });
 
     setBridgeStatus("submitted");
-    await new Promise((resolve) => setTimeout(resolve, 350));
-    setBridgeStatus("delivered");
   }, [backend, executeAction]);
 
   const getVaultStateFor = useCallback(async (address: string) => {

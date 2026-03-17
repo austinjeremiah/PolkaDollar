@@ -13,8 +13,20 @@ const DEFAULT_XCM_MESSAGE =
   "0x040c000400000002093d0001000000821a06000b0200000103000000000000000000000000000000000000000000000000000000000000000000";
 
 const DESTINATIONS = [
-  { id: "hydration", label: "Hydration", paraId: "2034" },
-  { id: "moonbeam", label: "Moonbeam", paraId: "2004" },
+  {
+    id: "relay",
+    label: "Relay Chain (supported)",
+    paraId: "-",
+    destHex: "0x040100",
+    note: "Current demo payload is encoded for relay-route execution.",
+  },
+  {
+    id: "hydration",
+    label: "Hydration (coming soon)",
+    paraId: "2034",
+    destHex: "0x040100",
+    note: "Hydration bytes/message template are not wired yet in this UI.",
+  },
 ];
 
 export default function BridgePage() {
@@ -29,7 +41,7 @@ export default function BridgePage() {
     xcmPrecompile,
   } = useProtocol();
 
-  const [destination, setDestination] = useState("hydration");
+  const [destination, setDestination] = useState("relay");
   const [amount, setAmount] = useState("1");
   const [recipient, setRecipient] = useState(wallet);
   const [xcmMessage, setXcmMessage] = useState(DEFAULT_XCM_MESSAGE);
@@ -39,16 +51,26 @@ export default function BridgePage() {
     [destination]
   );
 
+  const destinationBytes = useMemo(() => {
+    if (selectedDestination.id === "relay") return selectedDestination.destHex;
+    return xcmDestination;
+  }, [selectedDestination.id, selectedDestination.destHex, xcmDestination]);
+
+  const unsupportedDestination = selectedDestination.id !== "relay";
+
   function onSend(e: FormEvent) {
     e.preventDefault();
-    void sendCrossChain(xcmMessage);
+    if (unsupportedDestination) {
+      return;
+    }
+    void sendCrossChain(destinationBytes, xcmMessage);
   }
 
   const steps = [
     { key: "encoding", label: "Encoding XCM" },
     { key: "submitting", label: "Submitting" },
     { key: "confirming", label: "Confirming on Hub" },
-    { key: "delivered", label: "Delivered" },
+    { key: "submitted", label: "Submitted on Hub" },
   ] as const;
 
   return (
@@ -85,7 +107,8 @@ export default function BridgePage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-zinc-500">Configured XCM destination bytes: {xcmDestination}</p>
+              <p className="text-xs text-zinc-500">Configured XCM destination bytes: {destinationBytes}</p>
+              <p className="text-xs text-zinc-500">{selectedDestination.note}</p>
             </section>
 
             <section className="space-y-2 rounded-md border border-white/10 bg-black/20 p-3">
@@ -109,10 +132,13 @@ export default function BridgePage() {
 
               <Input value={xcmMessage} onChange={(e) => setXcmMessage(e.target.value)} placeholder="XCM message bytes" />
 
-              <Button className="w-full bg-purple-600 hover:bg-purple-500" type="submit" disabled={loading || !wallet}>
+              <Button className="w-full bg-purple-600 hover:bg-purple-500" type="submit" disabled={loading || !wallet || unsupportedDestination}>
                 Send Cross-Chain
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+              {unsupportedDestination ? (
+                <p className="text-xs text-yellow-300">Destination wiring for this parachain is pending. Use Relay Chain for a working flow.</p>
+              ) : null}
             </section>
           </form>
         </CardContent>
@@ -125,8 +151,8 @@ export default function BridgePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {steps.map((step, index) => {
-            const reached = ["encoding", "submitting", "confirming", "submitted", "delivered"].includes(bridgeStatus) &&
-              ["encoding", "submitting", "confirming", "delivered"].indexOf(step.key) <= ["encoding", "submitting", "confirming", "delivered"].indexOf(bridgeStatus === "submitted" ? "confirming" : bridgeStatus === "failed" ? "encoding" : bridgeStatus);
+            const reached = ["encoding", "submitting", "confirming", "submitted"].includes(bridgeStatus) &&
+              ["encoding", "submitting", "confirming", "submitted"].indexOf(step.key) <= ["encoding", "submitting", "confirming", "submitted"].indexOf(bridgeStatus === "failed" ? "encoding" : bridgeStatus);
             const current = bridgeStatus === step.key;
 
             return (
@@ -137,9 +163,9 @@ export default function BridgePage() {
             );
           })}
 
-          {bridgeStatus === "delivered" ? (
+          {bridgeStatus === "submitted" ? (
             <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-sm text-emerald-200">
-              {Number(amount || "0").toFixed(2)} pUSD delivered to {selectedDestination.label} (testnet flow).
+              XCM call accepted on Hub. Destination delivery is asynchronous and not yet verified in this UI.
             </p>
           ) : null}
 
@@ -149,7 +175,7 @@ export default function BridgePage() {
         </CardContent>
       </Card>
 
-      {(bridgeStatus === "submitted" || bridgeStatus === "delivered") && (
+      {bridgeStatus === "submitted" && (
         <Card className="border-purple-500/20 bg-[#141925]">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
@@ -165,8 +191,8 @@ export default function BridgePage() {
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
               <p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Destination bytes</p>
-              <p className="font-mono break-all text-zinc-400">{xcmDestination}</p>
-              <p className="mt-1 text-xs text-zinc-500">SCALE-encoded MultiLocation for the destination parachain</p>
+              <p className="font-mono break-all text-zinc-400">{destinationBytes}</p>
+              <p className="mt-1 text-xs text-zinc-500">SCALE-encoded MultiLocation currently configured for relay-route flow.</p>
             </div>
             <p className="text-xs text-zinc-500">
               The XCM precompile is a Polkadot-native feature exposed at a fixed address. Any Solidity contract on Polkadot Hub can send cross-chain messages without a bridge relayer — this is not available on Ethereum or any other EVM chain.
