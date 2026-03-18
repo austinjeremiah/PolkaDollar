@@ -61,7 +61,10 @@ const config: BackendConfig = {
   priceFeedAddress: process.env.NEXT_PUBLIC_PRICE_FEED_ADDRESS || "0xCDe170C92E281757aD961Ba47B33DFacd827a761",
   riskEngineAddress: process.env.NEXT_PUBLIC_RISK_ENGINE_ADDRESS || "0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B",
   xcmPrecompile: process.env.NEXT_PUBLIC_XCM_PRECOMPILE || "0x000000000000000000000000000000000000A000",
-  xcmDestination: process.env.NEXT_PUBLIC_XCM_DEST_HYDRATION || "0x040100",
+  xcmDestination:
+    process.env.NEXT_PUBLIC_XCM_DEST_HYDRATION ||
+    process.env.NEXT_PUBLIC_XCM_DESTINATION ||
+    "0x040100",
   rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://eth-rpc-testnet.polkadot.io/",
   chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID || "420420417"),
   chainName: process.env.NEXT_PUBLIC_CHAIN_NAME || "Polkadot Hub TestNet",

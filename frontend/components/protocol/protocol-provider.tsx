@@ -41,6 +41,14 @@ type RatioPoint = {
 
 type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "failed";
 
+type XcmTxProof = {
+  hash: string;
+  gasUsed: string;
+  status: number;
+  blockNumber: number;
+  destHex: string;
+} | null;
+
 type ProtocolContextValue = {
   loading: boolean;
   error: string | null;
@@ -55,6 +63,7 @@ type ProtocolContextValue = {
   priceHistory: PricePoint[];
   ratioHistory: RatioPoint[];
   bridgeStatus: BridgeStatus;
+  xcmTxProof: XcmTxProof;
   xcmDestination: string;
   xcmPrecompile: string;
   oracleStale: boolean;
@@ -92,7 +101,7 @@ const VARIANCE_THRESHOLDS = {
   high: 9_000_000_000_000_000_000_000,
 };
 
-const MAX_REASONABLE_VARIANCE = 10n ** 28n;
+const MAX_REASONABLE_VARIANCE = BigInt("10000000000000000000000000000");
 
 function shortAddress(address: string): string {
   if (!address) return "";
@@ -167,6 +176,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
   const [lastTxHash, setLastTxHash] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>("idle");
+  const [xcmTxProof, setXcmTxProof] = useState<XcmTxProof>(null);
   const [oracleStale, setOracleStale] = useState(false);
 
   const [position, setPosition] = useState<PositionState>({
@@ -212,8 +222,9 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
         to: backend.addresses.riskEngine,
         data: "0x3e09e777",
       });
-      const [varianceRaw] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], raw) as [bigint];
-      if (varianceRaw < 0n || varianceRaw > MAX_REASONABLE_VARIANCE) {
+      const decoded = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], raw) as unknown as [bigint];
+      const varianceRaw = decoded[0];
+      if (varianceRaw < BigInt(0) || varianceRaw > MAX_REASONABLE_VARIANCE) {
         throw new Error("variance out of expected range");
       }
       // variance is stored as (return * SCALE)^2 — recover σ = sqrt(variance) / SCALE
@@ -421,10 +432,20 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     setBridgeStatus("encoding");
     await new Promise((resolve) => setTimeout(resolve, 350));
     setBridgeStatus("submitting");
+    setXcmTxProof(null);
 
     await executeAction("XCM send", async () => {
       const result = await backend.sendXcm(destHex, messageHex);
       setBridgeStatus("confirming");
+      if (result.receipt) {
+        setXcmTxProof({
+          hash: result.hash,
+          gasUsed: result.receipt.gasUsed.toString(),
+          status: Number(result.receipt.status ?? 0),
+          blockNumber: Number(result.receipt.blockNumber ?? 0),
+          destHex,
+        });
+      }
       return result;
     });
 
@@ -488,6 +509,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     priceHistory,
     ratioHistory,
     bridgeStatus,
+    xcmTxProof,
     xcmDestination: backend.xcmDestHydration,
     xcmPrecompile: backend.addresses.xcmPrecompile,
     oracleStale,
@@ -507,6 +529,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     backend.loading,
     backend.xcmDestHydration,
     bridgeStatus,
+    xcmTxProof,
     burnPusd,
     connectWallet,
     depositCollateral,

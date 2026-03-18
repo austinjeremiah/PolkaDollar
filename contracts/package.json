@@ -17,8 +17,10 @@
     "test:e2e": "hardhat run scripts/e2e-backend.ts --network hub",
     "xcm:find-precompile": "hardhat run scripts/find-xcm-precompile.ts --network hub",
     "xcm:deploy": "hardhat run scripts/deploy-xcm-transfer.ts --network hub",
-    "xcm:encode": "hardhat run scripts/xcm-encode.ts",
-    "xcm:send": "hardhat run scripts/send-xcm-direct.ts --network hub",
+    "xcm:encode": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run scripts/xcm-encode.ts",
+    "xcm:encode:hydration": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true XCM_DEST_TARGET=hydration hardhat run scripts/xcm-encode.ts",
+    "xcm:send": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run scripts/send-xcm-direct.ts --network hub",
+    "xcm:send:hydration": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true XCM_DEST_TARGET=hydration hardhat run scripts/send-xcm-direct.ts --network hub",
     "xcm:watch": "hardhat run scripts/xcm-watch.ts --network hub",
     "demo:all": "npm run build:rust && npm run compile && npm run demo",
     "clean": "hardhat clean"

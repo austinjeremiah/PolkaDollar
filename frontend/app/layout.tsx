@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     title: 'Brutalist AI SaaS Landing Page Template | Engineering-Grade Dark UI Kit',
     description:
       'A brutalist, engineering-themed landing page template for AI and SaaS products. Geist Pixel typography, terminal animations, bento grids, scramble-text effects, and a full industrial design system. Next.js 16 + Tailwind CSS + Framer Motion.',
-    siteName: 'SYS.INT Template',
+    siteName: 'Polkadollar Protocol',
   },
   twitter: {
     card: 'summary_large_image',

@@ -8,6 +8,8 @@ const WINDOW_SECONDS = Number(process.env.WINDOW_SECONDS || "180");
 const DESTINATION_SCAN_BLOCKS = Number(
   process.env.DESTINATION_SCAN_BLOCKS || process.env.RELAY_SCAN_BLOCKS || "300"
 );
+const WATCH_TIMEOUT_MS = Number(process.env.WATCH_TIMEOUT_MS || "120000");
+const PROGRESS_EVERY = Number(process.env.PROGRESS_EVERY || "100");
 
 const INTERESTING_SECTIONS = new Set([
   "polkadotXcm",
@@ -72,10 +74,26 @@ async function scanDestinationEvents(api: ApiPromise, sourceTimestampMs: bigint)
   const header = await api.rpc.chain.getHeader(head);
   const headNumber = header.number.toNumber();
   const fromBlock = Math.max(1, headNumber - DESTINATION_SCAN_BLOCKS);
+  const totalBlocks = headNumber - fromBlock + 1;
+  const windowMs = BigInt(WINDOW_SECONDS) * 1000n;
+  const upperBoundTs = sourceTimestampMs + windowMs;
+  const lowerBoundTs = sourceTimestampMs - windowMs;
+  const startedAt = Date.now();
 
   const hits: DestinationHit[] = [];
 
-  for (let blockNumber = fromBlock; blockNumber <= headNumber; blockNumber++) {
+  for (let blockNumber = headNumber; blockNumber >= fromBlock; blockNumber--) {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed > WATCH_TIMEOUT_MS) {
+      console.log(`Timeout reached after ${elapsed}ms, returning partial results.`);
+      break;
+    }
+
+    if ((headNumber - blockNumber) % Math.max(1, PROGRESS_EVERY) === 0) {
+      const scanned = headNumber - blockNumber + 1;
+      console.log(`Scanning destination blocks: ${scanned}/${totalBlocks} (current ${blockNumber})`);
+    }
+
     const hash = await api.rpc.chain.getBlockHash(blockNumber);
 
     const [events, tsNow] = await Promise.all([
@@ -84,11 +102,13 @@ async function scanDestinationEvents(api: ApiPromise, sourceTimestampMs: bigint)
     ]);
 
     const tsMs = BigInt(tsNow.toString());
-    const deltaSeconds = tsMs > sourceTimestampMs
-      ? (tsMs - sourceTimestampMs) / 1000n
-      : (sourceTimestampMs - tsMs) / 1000n;
 
-    if (deltaSeconds > BigInt(WINDOW_SECONDS)) {
+    // We scan newest -> oldest, so once we go below the lower bound, we can stop.
+    if (tsMs < lowerBoundTs) {
+      break;
+    }
+
+    if (tsMs > upperBoundTs) {
       continue;
     }
 
@@ -117,6 +137,7 @@ async function main() {
   console.log(`Destination WS     : ${DESTINATION_WS || "(missing)"}`);
   console.log(`Window             : +/- ${WINDOW_SECONDS}s`);
   console.log(`Destination scan   : last ${DESTINATION_SCAN_BLOCKS} blocks`);
+  console.log(`Timeout            : ${WATCH_TIMEOUT_MS}ms`);
 
   const source = await getSourceTxContext();
 

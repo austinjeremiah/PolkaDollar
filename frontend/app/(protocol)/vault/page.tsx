@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const EXPLORER_BASE = (process.env.NEXT_PUBLIC_EXPLORER_URL || "https://blockscout-testnet.polkadot.io/").replace(/\/$/, "");
+
 function healthClass(hf: number) {
   if (hf >= 2) return "text-emerald-300";
   if (hf >= 1.5) return "text-yellow-300";
@@ -17,6 +19,8 @@ function healthClass(hf: number) {
 }
 
 export default function VaultPage() {
+  const txUrl = (hash: string) => `${EXPLORER_BASE}/tx/${hash}`;
+
   const {
     loading,
     wallet,
@@ -264,7 +268,17 @@ export default function VaultPage() {
               <ArrowRight className="h-3.5 w-3.5 text-zinc-500" />
               <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-xs text-emerald-300">pUSD minted</span>
             </div>
-            <p className="break-all text-xs text-zinc-500">Tx: {lastTxHash}</p>
+            <p className="break-all text-xs text-zinc-500">
+              Tx: {" "}
+              <a
+                href={txUrl(lastTxHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-300 underline underline-offset-2 hover:text-purple-200"
+              >
+                {lastTxHash}
+              </a>
+            </p>
             <p className="text-xs text-zinc-600">The vault called the Rust contract synchronously — risk assessment and mint happened atomically in one transaction on Polkadot Hub.</p>
           </CardContent>
         </Card>
