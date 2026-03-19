@@ -37,7 +37,7 @@ export function Navbar() {
           </motion.div>
 
           {/* Center nav links */}
-          <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-[53%]">
+          <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-[53  %]">
             {links.map((link, i) => (
               <motion.div
                 key={link.label}

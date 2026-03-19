@@ -24,6 +24,82 @@ function requiredEnv(name: string): string {
   return v;
 }
 
+function isAlreadyImportedError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return msg.includes("transaction already imported") || msg.includes("already known");
+}
+
+function isNonceTooLowError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return msg.includes("nonce too low") || msg.includes("already used");
+}
+
+function isPriorityTooLowError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return msg.includes("priority is too low") || msg.includes("replacement transaction underpriced");
+}
+
+async function sendDeployWithRetry(deployer: any, dataHex: string) {
+  const provider = deployer.provider;
+  if (!provider) {
+    throw new Error("No provider on signer");
+  }
+
+  let nonce = await provider.getTransactionCount(deployer.address, "pending");
+  const fee = await provider.getFeeData();
+  const fallbackBase = ethers.parseUnits("1000", "gwei");
+  let baseFee = fee.maxFeePerGas ?? fee.gasPrice ?? fallbackBase;
+  let tip = fee.maxPriorityFeePerGas ?? ethers.parseUnits("2", "gwei");
+
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Replacement rules are generally tip-based; bump both tip and fee cap aggressively.
+      const tipBumped = (tip * BigInt(150 + (attempt - 1) * 50)) / 100n;
+      const maxFeeBumped = (baseFee * BigInt(170 + (attempt - 1) * 70)) / 100n + tipBumped;
+      console.log(
+        `Deploy attempt ${attempt}/${maxAttempts} nonce=${nonce} maxPriorityFeePerGas=${tipBumped} maxFeePerGas=${maxFeeBumped}`
+      );
+
+      const tx = await deployer.sendTransaction({
+        data: dataHex,
+        nonce,
+        maxPriorityFeePerGas: tipBumped,
+        maxFeePerGas: maxFeeBumped,
+      });
+
+      console.log(`Deploy tx hash  : ${tx.hash}`);
+      const receipt = await tx.wait();
+      return { tx, receipt };
+    } catch (err) {
+      if (isAlreadyImportedError(err)) {
+        console.log("Node already has this tx. Retrying with replacement gas price...");
+        continue;
+      }
+
+      if (isPriorityTooLowError(err)) {
+        // For replacement semantics, bump both tip and fee cap before next attempt.
+        tip = (tip * 2n) / 1n;
+        baseFee = (baseFee * 3n) / 2n;
+        console.log(
+          `Priority too low from node, bumping baseFee=${baseFee} and tip=${tip} and retrying...`
+        );
+        continue;
+      }
+
+      if (isNonceTooLowError(err)) {
+        nonce = await provider.getTransactionCount(deployer.address, "pending");
+        console.log(`Nonce updated to ${nonce} after nonce error, retrying...`);
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  throw new Error("Failed to deploy risk engine after retries. Please wait for pending tx to settle and retry.");
+}
+
 async function main() {
   const vaultAddress = requiredEnv("VAULT_ADDRESS");
 
@@ -41,8 +117,7 @@ async function main() {
 
   // 2. Deploy by sending raw blob as transaction data (pallet-revive pattern)
   console.log("Deploying risk_engine (Rust → RISC-V → PolkaVM)...");
-  const deployTx = await deployer.sendTransaction({ data: "0x" + blob.toString("hex") });
-  const receipt = await deployTx.wait();
+  const { tx: deployTx, receipt } = await sendDeployWithRetry(deployer, "0x" + blob.toString("hex"));
   if (!receipt?.contractAddress) throw new Error("Deploy failed — no contractAddress in receipt");
 
   const newRiskEngine = receipt.contractAddress;
