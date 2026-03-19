@@ -109,12 +109,13 @@ export default function BridgePage() {
   const inputCls = "rounded-sm border-white/40 bg-zinc-900 font-mono text-xs !text-white placeholder:text-zinc-600";
 
   return (
-    <section className="mx-auto w-full max-w-3xl space-y-5">
+    <section className="mx-auto w-full max-w-6xl space-y-5">
       <div>
         <h1 className="font-pixel text-5xl sm:text-6xl lg:text-7xl tracking-tight text-white">BRIDGE</h1>
         <p className="mt-1 text-sm text-zinc-500">Send pUSD cross-chain through the XCM precompile flow.</p>
       </div>
 
+      <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
       {/* Transfer form */}
       <MbCard coords="X:0 Y:0">
         <p className="mb-1 font-mono text-xs uppercase tracking-widest text-zinc-200">Cross-Chain Transfer</p>
@@ -178,7 +179,8 @@ export default function BridgePage() {
         </form>
       </MbCard>
 
-      {/* Asset semantics */}
+      {/* Transaction status — right column */}
+      <div className="space-y-4">
       <MbCard coords="X:1 Y:0">
         <div className="mb-3 flex items-center gap-2">
           <span className="rounded-sm border border-yellow-500/30 bg-black px-2 py-0.5 font-mono text-[10px] tracking-widest text-yellow-400">IMPORTANT</span>
@@ -266,6 +268,8 @@ export default function BridgePage() {
           </div>
         </MbCard>
       )}
+      </div>{/* end right column */}
+      </div>{/* end grid */}
     </section>
   );
 }
