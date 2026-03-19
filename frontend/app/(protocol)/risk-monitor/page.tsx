@@ -47,6 +47,12 @@ export default function RiskMonitorPage() {
           <p className="mt-1 text-[11px] text-zinc-600">EWMA daily volatility</p>
           <p className="mt-3 font-pixel text-4xl text-white">{riskState.volatilityPct.toFixed(2)}%</p>
           <p className="mt-2 font-mono text-[10px] text-zinc-600">Computed via Rust risk engine state transitions</p>
+          <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/30 p-4 space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">EWMA Formula</p>
+            <p className="font-pixel text-xl text-zinc-100">σ²ₜ = λ·σ²ₜ₋₁ + (1−λ)·r²ₜ</p>
+            <p className="font-pixel text-base text-zinc-400">λ = 0.94</p>
+            <p className="font-pixel text-base text-zinc-400">σ = √σ² × 100</p>
+          </div>
         </MbCard>
 
         <MbCard coords="X:1 Y:0">
@@ -60,6 +66,13 @@ export default function RiskMonitorPage() {
           <p className="mt-1 text-[11px] text-zinc-600">{riskState.regime} regime → {(riskState.ratioBps / 100).toFixed(0)}%</p>
           <p className="mt-3 font-pixel text-4xl text-white">{(riskState.ratioBps / 100).toFixed(0)}%</p>
           <p className="mt-2 font-mono text-[10px] text-zinc-600">Range: 130% to 220%</p>
+          <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/30 p-4 space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Regime Map</p>
+            <p className="font-pixel text-base text-zinc-400">LOW → <span className="text-emerald-400">130%</span></p>
+            <p className="font-pixel text-base text-zinc-400">MEDIUM → <span className="text-yellow-400">150%</span></p>
+            <p className="font-pixel text-base text-zinc-400">HIGH → <span className="text-orange-400">180%</span></p>
+            <p className="font-pixel text-base text-zinc-400">EXTREME → <span className="text-red-400">220%</span></p>
+          </div>
         </MbCard>
       </div>
 
@@ -75,7 +88,7 @@ export default function RiskMonitorPage() {
                 <XAxis dataKey="day" tick={tickStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={chartTooltip} />
-                <Area type="monotone" dataKey="volatilityPct" stroke="#f59e0b" fill="#f59e0b22" strokeWidth={2} />
+                <Area type="monotone" dataKey="volatilityPct" stroke="#00d4b4" fill="#00d4b411" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -93,8 +106,8 @@ export default function RiskMonitorPage() {
                 <YAxis yAxisId="ratio" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} domain={[120, 230]} />
                 <Tooltip contentStyle={chartTooltip} />
                 <Legend wrapperStyle={{ fontFamily: "monospace", fontSize: 11, color: "#71717a" }} />
-                <Line yAxisId="price" type="monotone" dataKey="price" stroke="#ec4899" strokeWidth={2} dot={false} name="DOT Price" />
-                <Line yAxisId="ratio" type="stepAfter" dataKey="ratioPct" stroke="#a855f7" strokeWidth={2} dot={false} name="Collateral Ratio" />
+                <Line yAxisId="price" type="monotone" dataKey="price" stroke="#00d4b4" strokeWidth={2} dot={false} name="DOT Price" />
+                <Line yAxisId="ratio" type="stepAfter" dataKey="ratioPct" stroke="#818cf8" strokeWidth={2} dot={false} name="Collateral Ratio" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -121,9 +134,7 @@ export default function RiskMonitorPage() {
         </div>
 
 
-<p className="mt-3 font-mono text-[10px] text-zinc-600">
-          Written in Rust, compiled to PolkaVM RISC-V bytecode, deployed on Polkadot Hub. Called synchronously by CollateralVault on every mint, withdraw, and liquidation — no oracle round-trip, no off-chain relayer.
-        </p>
+
       </MbCard>
     </section>
   );
