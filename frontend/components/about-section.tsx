@@ -148,7 +148,7 @@ function ContractPanel() {
         </span>
         <span className="font-mono text-[10px] tracking-widest text-zinc-600">PolkaVM</span>
       </div>
-      <div className="flex-1 p-4 overflow-hidden">
+      <div className="h-[360px] p-4 overflow-hidden">
         <div className="flex flex-col gap-0.5">
           {lines.map((line, i) => (
             <span

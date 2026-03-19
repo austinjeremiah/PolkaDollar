@@ -3,6 +3,7 @@ import { JetBrains_Mono } from 'next/font/google'
 import { GeistPixelGrid } from 'geist/font/pixel'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { SmoothCursor } from '@/components/ui/smooth-cursor'
 
 import './globals.css'
 
@@ -81,8 +82,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${jetbrainsMono.variable} ${GeistPixelGrid.variable}`} suppressHydrationWarning>
-      <body className="font-mono antialiased">
+      <body className="font-mono antialiased cursor-none">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+          <SmoothCursor />
           {children}
           <Toaster richColors theme="dark" />
         </ThemeProvider>

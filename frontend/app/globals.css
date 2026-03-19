@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  cursor: none !important;
+}
+
+input,
+textarea,
+select {
+  cursor: text !important;
+}
+
 @layer base {
   :root {
     --background: 43 23% 93%;

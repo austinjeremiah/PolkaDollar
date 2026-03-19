@@ -6,14 +6,14 @@ import { useEffect, useState } from "react"
 const LEFT_LABELS = ["FetchPrice", "UpdateFeed", "PushPrice"]
 const RIGHT_LABELS = ["AssessRisk", "CheckVault", "MintBurn"]
 
-const PILL_W = 130
-const PILL_H = 34
-const LEFT_X = 20
-const RIGHT_X = 650
+const PILL_W = 104
+const PILL_H = 26
+const LEFT_X = 40
+const RIGHT_X = 656
 const CENTER_X = 400
-const CENTER_Y = 110
-const PILL_Y_START = 26
-const PILL_GAP = 70
+const CENTER_Y = 100
+const PILL_Y_START = 24
+const PILL_GAP = 58
 
 function PillLabel({
   label,
@@ -47,7 +47,7 @@ function PillLabel({
         y={y + PILL_H / 2 + 5}
         textAnchor="middle"
         fill="hsl(var(--foreground))"
-        fontSize={14}
+        fontSize={11}
         fontFamily="var(--font-mono), monospace"
         fontWeight={500}
         letterSpacing="0.05em"
@@ -66,13 +66,13 @@ export function WorkflowDiagram() {
   }, [])
 
   if (!mounted) {
-    return <div className="h-[220px] w-full" />
+    return <div className="h-[200px] w-full" />
   }
 
   return (
     <div className="relative w-full max-w-[800px] mx-auto">
       <svg
-        viewBox="0 0 800 220"
+        viewBox="0 0 800 200"
         className="w-full h-auto"
         role="img"
         aria-label="Workflow diagram: FetchPrice, UpdateFeed, PushPrice → PolkaVM → AssessRisk, CheckVault, MintBurn"
