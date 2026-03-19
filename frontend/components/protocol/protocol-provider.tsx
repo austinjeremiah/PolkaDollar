@@ -74,6 +74,7 @@ type ProtocolContextValue = {
   oracleStale: boolean;
   stabilityResult: StabilityResult;
   connectWallet: () => Promise<void>;
+  disconnectWallet: () => void;
   switchNetwork: () => Promise<void>;
   refresh: (address?: string, silent?: boolean) => Promise<void>;
   depositCollateral: (amount: string) => Promise<void>;
@@ -412,6 +413,13 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     toast.success(`Wallet connected: ${shortAddress(address)}`);
   }, [backend, refresh]);
 
+  const disconnectWallet = useCallback(() => {
+    setWallet("");
+    setStatus("Disconnected");
+    setPosition({ collateral: "0", debt: "0", healthFactor: "-", pusdBalance: "0", dotPrice: position.dotPrice });
+    toast.success("Wallet disconnected");
+  }, [position.dotPrice]);
+
   const switchNetwork = useCallback(async () => {
     await backend.switchNetwork();
     setStatus("Switched to Polkadot Hub TestNet");
@@ -527,6 +535,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     oracleStale,
     stabilityResult,
     connectWallet,
+    disconnectWallet,
     switchNetwork,
     refresh,
     depositCollateral,
@@ -545,6 +554,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     xcmTxProof,
     burnPusd,
     connectWallet,
+    disconnectWallet,
     depositCollateral,
     lastTxHash,
     lastUpdatedAt,
