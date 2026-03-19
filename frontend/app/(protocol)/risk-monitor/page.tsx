@@ -1,16 +1,28 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Minus, Move } from "lucide-react";
 import { RiskGauge } from "@/components/protocol/risk-gauge";
 import { useProtocol } from "@/components/protocol/protocol-provider";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const RISK_ENGINE = process.env.NEXT_PUBLIC_RISK_ENGINE_ADDRESS || "0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B";
-const VAULT = process.env.NEXT_PUBLIC_VAULT_ADDRESS || "0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae";
-const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_URL || "https://blockscout-testnet.polkadot.io/";
+
+function MbCard({ children, coords = "X:0 Y:0", className = "" }: { children: React.ReactNode; coords?: string; className?: string }) {
+  return (
+    <div className={`rounded-sm border border-white/[0.18] bg-[#0d0f13] ${className}`}>
+      <div className="flex items-center justify-between border-b border-white/[0.18] px-3 py-2">
+        <div className="flex items-center gap-2 text-zinc-600">
+          <Minus className="h-3 w-3" />
+          <Move className="h-3 w-3" />
+        </div>
+        <span className="font-mono text-[10px] tracking-widest text-zinc-600">{coords}</span>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
 
 export default function RiskMonitorPage() {
-  const { riskState, ratioHistory, priceHistory, xcmPrecompile } = useProtocol();
+  const { riskState, ratioHistory, priceHistory } = useProtocol();
 
   const overlayData = ratioHistory.map((r, index) => ({
     day: r.day,
@@ -18,136 +30,101 @@ export default function RiskMonitorPage() {
     price: priceHistory[index]?.price ?? null,
   }));
 
+  const chartTooltip = { background: "#0d0f13", border: "1px solid rgba(255,255,255,0.18)", fontFamily: "monospace", fontSize: 11 };
+  const tickStyle = { fill: "#52525b", fontSize: 10, fontFamily: "monospace" };
+
   return (
     <section className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Risk Monitor</h1>
-        <p className="text-sm text-zinc-400">Rust PolkaVM regime engine telemetry and collateral policy behavior.</p>
+        <h1 className="font-pixel text-5xl sm:text-6xl lg:text-7xl tracking-tight text-white">RISK MONITOR</h1>
+        <p className="mt-1 text-sm text-zinc-500">Rust PolkaVM regime engine telemetry and collateral policy behavior.</p>
       </div>
 
+      {/* Top stat cards */}
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-white/10 bg-[#141925]">
-          <CardHeader>
-            <CardTitle className="text-sm text-zinc-200">Volatility</CardTitle>
-            <CardDescription>EWMA daily volatility</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tabular-nums text-zinc-50">{riskState.volatilityPct.toFixed(2)}%</p>
-            <p className="mt-1 text-xs text-zinc-500">Computed via Rust risk engine state transitions</p>
-          </CardContent>
-        </Card>
+        <MbCard coords="X:0 Y:0">
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-200">Volatility</p>
+          <p className="mt-1 text-[11px] text-zinc-600">EWMA daily volatility</p>
+          <p className="mt-3 font-pixel text-4xl text-white">{riskState.volatilityPct.toFixed(2)}%</p>
+          <p className="mt-2 font-mono text-[10px] text-zinc-600">Computed via Rust risk engine state transitions</p>
+        </MbCard>
 
-        <Card className="border-white/10 bg-[#141925] xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-sm text-zinc-200">Current Regime</CardTitle>
-            <CardDescription>Threshold-classified risk bucket</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RiskGauge regime={riskState.regime} volatilityPct={riskState.volatilityPct} ratioPct={riskState.ratioBps / 100} compact />
-          </CardContent>
-        </Card>
+        <MbCard coords="X:1 Y:0">
+          <p className="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-200">Current Regime</p>
+          <p className="mb-2 text-[11px] text-zinc-600">Threshold-classified risk bucket</p>
+          <RiskGauge regime={riskState.regime} volatilityPct={riskState.volatilityPct} ratioPct={riskState.ratioBps / 100} compact />
+        </MbCard>
 
-        <Card className="border-white/10 bg-[#141925]">
-          <CardHeader>
-            <CardTitle className="text-sm text-zinc-200">Collateral Ratio</CardTitle>
-            <CardDescription>{riskState.regime} regime maps to {(riskState.ratioBps / 100).toFixed(0)}%</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tabular-nums text-zinc-50">{(riskState.ratioBps / 100).toFixed(0)}%</p>
-            <p className="mt-2 text-xs text-zinc-500">Range: 130% to 220%</p>
-          </CardContent>
-        </Card>
+        <MbCard coords="X:2 Y:0">
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-200">Collateral Ratio</p>
+          <p className="mt-1 text-[11px] text-zinc-600">{riskState.regime} regime → {(riskState.ratioBps / 100).toFixed(0)}%</p>
+          <p className="mt-3 font-pixel text-4xl text-white">{(riskState.ratioBps / 100).toFixed(0)}%</p>
+          <p className="mt-2 font-mono text-[10px] text-zinc-600">Range: 130% to 220%</p>
+        </MbCard>
       </div>
 
+      {/* Charts */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-white/10 bg-[#141925]">
-          <CardHeader>
-            <CardTitle className="text-sm text-zinc-200">Volatility Over Time</CardTitle>
-            <CardDescription>EWMA area chart with regime boundaries</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={ratioHistory}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#263043" />
-                  <XAxis dataKey="day" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#0f1115", border: "1px solid #2f3747" }} />
-                  <Area type="monotone" dataKey="volatilityPct" stroke="#f59e0b" fill="#f59e0b33" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <MbCard coords="X:0 Y:1">
+          <p className="mb-1 font-mono text-xs uppercase tracking-widest text-zinc-200">Volatility Over Time</p>
+          <p className="mb-4 text-[11px] text-zinc-600">EWMA area chart with regime boundaries</p>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={ratioHistory}>
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="day" tick={tickStyle} axisLine={false} tickLine={false} />
+                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltip} />
+                <Area type="monotone" dataKey="volatilityPct" stroke="#f59e0b" fill="#f59e0b22" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </MbCard>
 
-        <Card className="border-white/10 bg-[#141925]">
-          <CardHeader>
-            <CardTitle className="text-sm text-zinc-200">DOT Price + Ratio Overlay</CardTitle>
-            <CardDescription>Dual-axis view of market and policy response</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={overlayData}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#263043" />
-                  <XAxis dataKey="day" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="price" orientation="left" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="ratio" orientation="right" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} domain={[120, 230]} />
-                  <Tooltip contentStyle={{ background: "#0f1115", border: "1px solid #2f3747" }} />
-                  <Legend />
-                  <Line yAxisId="price" type="monotone" dataKey="price" stroke="#ec4899" strokeWidth={2} dot={false} name="DOT Price" />
-                  <Line yAxisId="ratio" type="stepAfter" dataKey="ratioPct" stroke="#a855f7" strokeWidth={2} dot={false} name="Collateral Ratio" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <MbCard coords="X:1 Y:1">
+          <p className="mb-1 font-mono text-xs uppercase tracking-widest text-zinc-200">DOT Price + Ratio Overlay</p>
+          <p className="mb-4 text-[11px] text-zinc-600">Dual-axis view of market and policy response</p>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={overlayData}>
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="day" tick={tickStyle} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="price" orientation="left" tick={tickStyle} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="ratio" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} domain={[120, 230]} />
+                <Tooltip contentStyle={chartTooltip} />
+                <Legend wrapperStyle={{ fontFamily: "monospace", fontSize: 11, color: "#71717a" }} />
+                <Line yAxisId="price" type="monotone" dataKey="price" stroke="#ec4899" strokeWidth={2} dot={false} name="DOT Price" />
+                <Line yAxisId="ratio" type="stepAfter" dataKey="ratioPct" stroke="#a855f7" strokeWidth={2} dot={false} name="Collateral Ratio" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </MbCard>
       </div>
 
-      <Card className="border-purple-500/20 bg-[#141925]">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-300">Rust / PolkaVM</span>
-            <CardTitle className="text-sm text-zinc-200">On-Chain Risk Engine</CardTitle>
-          </div>
-          <CardDescription>Cross-VM computation — Solidity invokes Rust in a single atomic transaction</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-x-8 gap-y-2 text-xs sm:grid-cols-2">
-            <Detail label="Model" value="EWMA variance estimator" />
-            <Detail label="Decay factor (λ)" value="0.94 per price update" />
-            <Detail label="Regime T1 → LOW" value="σ &lt; 3.16% → 130% ratio" />
-            <Detail label="Regime T2 → MEDIUM" value="σ &lt; 6.32% → 150% ratio" />
-            <Detail label="Regime T3 → HIGH" value="σ &lt; 9.49% → 180% ratio" />
-            <Detail label="Regime T4 → EXTREME" value="σ ≥ 9.49% → 220% ratio" />
-            <Detail label="Liquidation threshold" value="Health factor &lt; 1.2" />
-            <Detail label="Oracle max age" value="1 800 s (30 min)" />
-          </div>
+      {/* Risk engine details */}
+      <MbCard coords="X:0 Y:2">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="rounded-sm border border-purple-500/30 bg-black px-2 py-0.5 font-mono text-[10px] tracking-widest text-purple-400">RUST / POLKAVM</span>
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-200">On-Chain Risk Engine</p>
+        </div>
+        <p className="mb-4 text-[11px] text-zinc-600">Cross-VM computation — Solidity invokes Rust in a single atomic transaction</p>
 
-          <div className="space-y-2 rounded-md border border-white/10 bg-black/20 p-3 text-xs">
-            <p className="text-zinc-400">Contract addresses — Polkadot Hub TestNet</p>
-            <p className="font-mono break-all text-zinc-300">
-              RiskEngine:{" "}
-              <a href={`${EXPLORER}address/${RISK_ENGINE}`} target="_blank" rel="noreferrer" className="text-purple-300 hover:text-purple-200 underline underline-offset-2">
-                {RISK_ENGINE}
-              </a>
-            </p>
-            <p className="font-mono break-all text-zinc-300">
-              CollateralVault:{" "}
-              <a href={`${EXPLORER}address/${VAULT}`} target="_blank" rel="noreferrer" className="text-pink-300 hover:text-pink-200 underline underline-offset-2">
-                {VAULT}
-              </a>
-            </p>
-            <p className="font-mono break-all text-zinc-300">
-              XCM Precompile: <span className="text-emerald-300">{xcmPrecompile}</span>
-            </p>
-          </div>
+        <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2 mb-4">
+          <Detail label="Model" value="EWMA variance estimator" />
+          <Detail label="Decay factor (λ)" value="0.94 per price update" />
+          <Detail label="Regime T1 → LOW" value="σ < 3.16% → 130% ratio" />
+          <Detail label="Regime T2 → MEDIUM" value="σ < 6.32% → 150% ratio" />
+          <Detail label="Regime T3 → HIGH" value="σ < 9.49% → 180% ratio" />
+          <Detail label="Regime T4 → EXTREME" value="σ ≥ 9.49% → 220% ratio" />
+          <Detail label="Liquidation threshold" value="Health factor < 1.2" />
+          <Detail label="Oracle max age" value="1 800 s (30 min)" />
+        </div>
 
-          <p className="text-xs text-zinc-500">
-            Written in Rust, compiled to PolkaVM RISC-V bytecode, deployed on Polkadot Hub. Called synchronously by CollateralVault on every mint, withdraw, and liquidation — no oracle round-trip, no off-chain relayer. The Solidity contract holds value; the Rust contract holds intelligence.
-          </p>
-        </CardContent>
-      </Card>
+
+<p className="mt-3 font-mono text-[10px] text-zinc-600">
+          Written in Rust, compiled to PolkaVM RISC-V bytecode, deployed on Polkadot Hub. Called synchronously by CollateralVault on every mint, withdraw, and liquidation — no oracle round-trip, no off-chain relayer.
+        </p>
+      </MbCard>
     </section>
   );
 }
@@ -155,8 +132,8 @@ export default function RiskMonitorPage() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-zinc-500">{label}</p>
-      <p className="text-zinc-200">{value}</p>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">{label}</p>
+      <p className="font-mono text-xs text-zinc-200">{value}</p>
     </div>
   );
 }
