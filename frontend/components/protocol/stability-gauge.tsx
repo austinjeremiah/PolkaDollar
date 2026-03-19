@@ -66,7 +66,7 @@ export function StabilityGauge({ flag, hasResult, compact = false }: Props) {
   const needleColor = hasResult ? FLAG_COLORS[activeFlag] : "#3f3f46";
 
   return (
-    <div className="rounded-lg border border-white/10 bg-[#151922] p-4">
+    <div>
       <div className="mx-auto" style={{ width: size }}>
         <svg viewBox="0 0 360 220" className="h-auto w-full">
           <defs>

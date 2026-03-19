@@ -41,7 +41,7 @@ export function RiskGauge({ regime, volatilityPct, ratioPct, compact = false }: 
   const rightY = baseY - perpY * headHalfWidth;
 
   return (
-    <div className="rounded-lg border border-white/10 bg-[#151922] p-4">
+    <div>
       <div className="mx-auto" style={{ width: size }}>
         <svg viewBox="0 0 360 220" className="h-auto w-full">
           <defs>
@@ -79,10 +79,8 @@ export function RiskGauge({ regime, volatilityPct, ratioPct, compact = false }: 
           <p className="mt-1 font-mono tabular-nums text-zinc-100">{ratioPct.toFixed(0)}%</p>
         </div>
       </div>
-      <p className="mt-3 text-center text-xs text-zinc-600">
-        Risk computed on-chain by{" "}
-        <span className="text-purple-400">Rust contract on PolkaVM</span>
-        {" "}— called from Solidity in a single atomic transaction
+      <p className="mt-3 text-center text-sm text-zinc-200">
+        Dynamic collateral limits based on market volatility
       </p>
     </div>
   );
