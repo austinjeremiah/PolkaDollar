@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRightLeft, ChartNoAxesCombined, Grid2x2, LockKeyhole, Menu } from "lucide-react";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useState } from "react";
 import { useProtocol } from "@/components/protocol/protocol-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,12 +26,6 @@ function shortAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function regimeClass(regime: string) {
-  if (regime === "LOW") return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
-  if (regime === "MEDIUM") return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
-  if (regime === "HIGH") return "bg-orange-500/20 text-orange-300 border-orange-500/30";
-  return "bg-red-500/20 text-red-300 border-red-500/30";
-}
 
 export function ProtocolShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -39,14 +33,10 @@ export function ProtocolShell({ children }: { children: ReactNode }) {
   const {
     wallet,
     networkName,
-    position,
-    riskState,
     connectWallet,
     switchNetwork,
     loading,
   } = useProtocol();
-
-  const ratioPct = useMemo(() => (riskState.ratioBps / 100).toFixed(0), [riskState.ratioBps]);
 
   return (
     <div className="min-h-screen bg-[#0f1115] text-zinc-100">
@@ -59,9 +49,8 @@ export function ProtocolShell({ children }: { children: ReactNode }) {
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex items-center justify-between pb-4">
-            <p className="text-sm font-semibold tracking-[0.14em] text-purple-300">POLKADOLLAR</p>
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileOpen(false)}>
+          <div className="flex items-center justify-end pb-4 md:hidden">
+            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(false)}>
               Close
             </Button>
           </div>
@@ -112,26 +101,13 @@ export function ProtocolShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#11151d]/90 px-4 py-3 backdrop-blur md:px-6">
-            <div className="mb-3 flex items-center justify-between md:hidden">
-              <p className="text-sm font-semibold tracking-[0.12em] text-purple-300">POLKADOLLAR</p>
-              <Button variant="outline" size="sm" onClick={() => setMobileOpen(true)}>
-                <Menu className="mr-2 h-4 w-4" />
-                Menu
-              </Button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <MetricTop label="DOT Price" value={`$${Number(position.dotPrice || "0").toFixed(2)}`} />
-              <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Risk Regime</p>
-                <p className={cn("mt-1 inline-flex rounded-full border px-2 py-1 text-xs font-semibold", regimeClass(riskState.regime))}>
-                  {riskState.regime}
-                </p>
-              </div>
-              <MetricTop label="Collateral Ratio" value={`${ratioPct}%`} />
-            </div>
-          </header>
+          <div className="flex items-center justify-between border-b border-white/10 bg-[#11151d]/90 px-4 py-3 md:hidden">
+            <p className="text-sm font-semibold tracking-[0.12em] text-purple-300">POLKADOLLAR</p>
+            <Button variant="outline" size="sm" onClick={() => setMobileOpen(true)}>
+              <Menu className="mr-2 h-4 w-4" />
+              Menu
+            </Button>
+          </div>
 
           <main className="flex-1 p-4 md:p-6">{children}</main>
         </div>
@@ -140,11 +116,3 @@ export function ProtocolShell({ children }: { children: ReactNode }) {
   );
 }
 
-function MetricTop({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-100">{value}</p>
-    </div>
-  );
-}

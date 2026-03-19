@@ -24,15 +24,11 @@ export default function DashboardPage() {
   return (
     <section className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Dashboard</h1>
+        <h1 className="font-pixel text-5xl sm:text-6xl lg:text-7xl tracking-tight text-foreground">POLKADOLLAR</h1>
         <p className="text-sm text-zinc-400">Protocol overview with live risk context and market history.</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-300">Cross-VM</span>
-        <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300">Native Assets</span>
-        <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">Precompiles</span>
-      </div>
+      
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="border-white/10 bg-[#141925]">
@@ -55,7 +51,7 @@ export default function DashboardPage() {
             <CardDescription className="text-current/70">On-chain EWMA variance</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{riskState.regime}</p>
+              <p className="text-3xl font-semibold">{riskState.regime}</p>
             <p className="mt-1 text-xs">Volatility: {riskState.volatilityPct.toFixed(2)}%</p>
           </CardContent>
         </Card>
@@ -91,7 +87,7 @@ export default function DashboardPage() {
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">C++ Stability Analyzer</p>
           <StabilityGauge
-            flag={(hasResult ? stabilityResult!.flag : 0) as 0 | 1 | 2}
+            flag={hasResult ? stabilityResult!.flag : 0}
             hasResult={hasResult}
           />
         </div>
