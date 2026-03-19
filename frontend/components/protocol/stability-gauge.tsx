@@ -28,7 +28,18 @@ const ANGLES: Record<Flag, number> = {
 
 export function StabilityGauge({ flag, hasResult, compact = false }: Props) {
   const size = compact ? 240 : 320;
-  const activeFlag: Flag = hasResult ? flag : 0;
+  
+  // Validate flag is a valid Flag (0, 1, or 2); default to 0 if invalid
+  const validateFlag = (value: number): Flag => {
+    if (!Number.isFinite(value)) return 0;
+    const normalized = Math.floor(value);
+    if (normalized === 0) return 0;
+    if (normalized === 1) return 1;
+    if (normalized === 2) return 2;
+    return 0;
+  };
+  
+  const activeFlag: Flag = hasResult ? validateFlag(flag) : 0;
   const angle = (ANGLES[activeFlag] * Math.PI) / 180;
 
   const backLen = 12;
