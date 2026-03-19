@@ -4,6 +4,7 @@ import { GeistPixelGrid } from 'geist/font/pixel'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { SmoothCursor } from '@/components/ui/smooth-cursor'
+import { SmoothScroll } from '@/components/smooth-scroll'
 
 import './globals.css'
 
@@ -81,9 +82,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${jetbrainsMono.variable} ${GeistPixelGrid.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${jetbrainsMono.variable} ${GeistPixelGrid.variable} cursor-none`} suppressHydrationWarning style={{ cursor: "none" }}>
       <body className="font-mono antialiased cursor-none">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+          <SmoothScroll />
           <SmoothCursor />
           {children}
           <Toaster richColors theme="dark" />

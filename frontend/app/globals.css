@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
+*,
+*::before,
+*::after,
+a,
+button,
+[role="button"],
+[tabindex] {
   cursor: none !important;
 }
 
