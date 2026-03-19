@@ -1,0 +1,1 @@
+/home/clatson/polkadot-hub-demo-cross-vm/demo-03/rust-contract/target/riscv64emac-unknown-none-polkavm/release/libfibonacci.rlib: /home/clatson/polkadot-hub-demo-cross-vm/demo-03/rust-contract/src/lib.rs

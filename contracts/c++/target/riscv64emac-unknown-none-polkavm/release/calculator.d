@@ -1,0 +1,1 @@
+/home/clatson/polkadot-hub-demo-cross-vm/demo-03/cpp-calculator/target/riscv64emac-unknown-none-polkavm/release/calculator: /home/clatson/polkadot-hub-demo-cross-vm/demo-03/cpp-calculator/build.rs /home/clatson/polkadot-hub-demo-cross-vm/demo-03/cpp-calculator/src/calculator.rs
