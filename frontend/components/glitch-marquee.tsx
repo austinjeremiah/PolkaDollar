@@ -4,17 +4,19 @@ import { motion } from "framer-motion"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
-const PARTNERS = [
-  "OPENAI",
-  "ANTHROPIC",
-  "GOOGLE",
-  "META",
-  "NVIDIA",
-  "MISTRAL",
-  "COHERE",
-  "STABILITY",
-  "DEEPMIND",
-  "HUGGING FACE",
+const ECOSYSTEM = [
+  "POLKADOT",
+  "ASSET HUB",
+  "HYDRATION",
+  "XCM v4",
+  "POLKAVM",
+  "RISC-V",
+  "INK!",
+  "SUBSTRATE",
+  "EWMA",
+  "pUSD",
+  "DOT",
+  "XCMP",
 ]
 
 function LogoBlock({ name, glitch }: { name: string; glitch: boolean }) {
@@ -32,7 +34,7 @@ function LogoBlock({ name, glitch }: { name: string; glitch: boolean }) {
 }
 
 export function GlitchMarquee() {
-  const glitchIndices = [2, 6]
+  const glitchIndices = [4, 8]
 
   return (
     <section className="w-full py-16 px-6 lg:px-12">
@@ -44,11 +46,11 @@ export function GlitchMarquee() {
         transition={{ duration: 0.5, ease }}
         className="flex items-center gap-4 mb-8"
       >
-        <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-          {"// PARTNERS: MODEL_ECOSYSTEM"}
+        <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
+          {"// ECOSYSTEM: PARACHAIN_MESH"}
         </span>
         <div className="flex-1 border-t border-border" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">008</span>
+        <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">006</span>
       </motion.div>
 
       {/* Marquee */}
@@ -60,11 +62,11 @@ export function GlitchMarquee() {
         className="overflow-hidden border-2 border-foreground"
       >
         <div className="flex animate-marquee" style={{ width: "max-content" }}>
-          {[...PARTNERS, ...PARTNERS].map((name, i) => (
+          {[...ECOSYSTEM, ...ECOSYSTEM].map((name, i) => (
             <LogoBlock
               key={`${name}-${i}`}
               name={name}
-              glitch={glitchIndices.includes(i % PARTNERS.length)}
+              glitch={glitchIndices.includes(i % ECOSYSTEM.length)}
             />
           ))}
         </div>

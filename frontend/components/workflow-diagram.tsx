@@ -6,6 +6,15 @@ import { useEffect, useState } from "react"
 const LEFT_LABELS = ["FetchPrice", "UpdateFeed", "PushPrice"]
 const RIGHT_LABELS = ["AssessRisk", "CheckVault", "MintBurn"]
 
+const PILL_W = 130
+const PILL_H = 34
+const LEFT_X = 20
+const RIGHT_X = 650
+const CENTER_X = 400
+const CENTER_Y = 110
+const PILL_Y_START = 26
+const PILL_GAP = 70
+
 function PillLabel({
   label,
   x,
@@ -26,19 +35,19 @@ function PillLabel({
       <rect
         x={x}
         y={y}
-        width={104}
-        height={26}
-        rx={13}
+        width={PILL_W}
+        height={PILL_H}
+        rx={PILL_H / 2}
         fill="none"
         stroke="hsl(var(--foreground))"
         strokeWidth={1.5}
       />
       <text
-        x={x + 52}
-        y={y + 17}
+        x={x + PILL_W / 2}
+        y={y + PILL_H / 2 + 5}
         textAnchor="middle"
         fill="hsl(var(--foreground))"
-        fontSize={10}
+        fontSize={14}
         fontFamily="var(--font-mono), monospace"
         fontWeight={500}
         letterSpacing="0.05em"
@@ -57,31 +66,27 @@ export function WorkflowDiagram() {
   }, [])
 
   if (!mounted) {
-    return <div className="h-[200px] w-full" />
+    return <div className="h-[220px] w-full" />
   }
-
-  const centerX = 400
-  const centerY = 100
 
   return (
     <div className="relative w-full max-w-[800px] mx-auto">
       <svg
-        viewBox="0 0 800 200"
+        viewBox="0 0 800 220"
         className="w-full h-auto"
         role="img"
-        aria-label="Workflow diagram showing Polkadollar execution flow: FetchPrice, UpdateFeed, PushPrice, AssessRisk, CheckVault, MintBurn"
+        aria-label="Workflow diagram: FetchPrice, UpdateFeed, PushPrice → PolkaVM → AssessRisk, CheckVault, MintBurn"
       >
-        {/* Left lines from center to left labels */}
+        {/* Left lines: right edge of pill → center */}
         {LEFT_LABELS.map((_, i) => {
-          const pillX = 60
-          const pillY = 30 + i * 60
+          const pillY = PILL_Y_START + i * PILL_GAP
           return (
             <motion.line
               key={`left-line-${i}`}
-              x1={centerX - 40}
-              y1={centerY}
-              x2={pillX + 104}
-              y2={pillY + 13}
+              x1={LEFT_X + PILL_W}
+              y1={pillY + PILL_H / 2}
+              x2={CENTER_X - 40}
+              y2={CENTER_Y}
               stroke="hsl(var(--border))"
               strokeWidth={1}
               initial={{ pathLength: 0, opacity: 0 }}
@@ -91,17 +96,16 @@ export function WorkflowDiagram() {
           )
         })}
 
-        {/* Right lines from center to right labels */}
+        {/* Right lines: center → left edge of pill */}
         {RIGHT_LABELS.map((_, i) => {
-          const pillX = 660
-          const pillY = 30 + i * 60
+          const pillY = PILL_Y_START + i * PILL_GAP
           return (
             <motion.line
               key={`right-line-${i}`}
-              x1={centerX + 40}
-              y1={centerY}
-              x2={pillX}
-              y2={pillY + 13}
+              x1={CENTER_X + 40}
+              y1={CENTER_Y}
+              x2={RIGHT_X}
+              y2={pillY + PILL_H / 2}
               stroke="hsl(var(--border))"
               strokeWidth={1}
               initial={{ pathLength: 0, opacity: 0 }}
@@ -111,19 +115,17 @@ export function WorkflowDiagram() {
           )
         })}
 
-        {/* Data packets flowing along lines */}
+        {/* Data packets: left pills → center */}
         {LEFT_LABELS.map((_, i) => {
-          const pillX = 60
-          const pillY = 30 + i * 60
+          const pillY = PILL_Y_START + i * PILL_GAP
           return (
             <motion.circle
               key={`left-packet-${i}`}
               r={3}
               fill="#ea580c"
-              initial={{ cx: pillX + 104, cy: pillY + 13 }}
               animate={{
-                cx: [pillX + 104, centerX - 40],
-                cy: [pillY + 13, centerY],
+                cx: [LEFT_X + PILL_W, CENTER_X - 40],
+                cy: [pillY + PILL_H / 2, CENTER_Y],
               }}
               transition={{
                 duration: 1.8,
@@ -136,18 +138,17 @@ export function WorkflowDiagram() {
           )
         })}
 
+        {/* Data packets: center → right pills */}
         {RIGHT_LABELS.map((_, i) => {
-          const pillX = 660
-          const pillY = 30 + i * 60
+          const pillY = PILL_Y_START + i * PILL_GAP
           return (
             <motion.circle
               key={`right-packet-${i}`}
               r={3}
               fill="#ea580c"
-              initial={{ cx: centerX + 40, cy: centerY }}
               animate={{
-                cx: [centerX + 40, pillX],
-                cy: [centerY, pillY + 13],
+                cx: [CENTER_X + 40, RIGHT_X],
+                cy: [CENTER_Y, pillY + PILL_H / 2],
               }}
               transition={{
                 duration: 1.8,
@@ -165,8 +166,8 @@ export function WorkflowDiagram() {
           <PillLabel
             key={`left-${label}`}
             label={label}
-            x={60}
-            y={30 + i * 60}
+            x={LEFT_X}
+            y={PILL_Y_START + i * PILL_GAP}
             delay={0.1 + i * 0.1}
           />
         ))}
@@ -176,8 +177,8 @@ export function WorkflowDiagram() {
           <PillLabel
             key={`right-${label}`}
             label={label}
-            x={660}
-            y={30 + i * 60}
+            x={RIGHT_X}
+            y={PILL_Y_START + i * PILL_GAP}
             delay={0.1 + i * 0.1}
           />
         ))}
@@ -189,33 +190,21 @@ export function WorkflowDiagram() {
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <rect
-            x={centerX - 36}
-            y={centerY - 36}
+            x={CENTER_X - 36}
+            y={CENTER_Y - 36}
             width={72}
             height={72}
             fill="hsl(var(--muted))"
             stroke="hsl(var(--border))"
             strokeWidth={1.5}
           />
-          {/* Abstract cross/flower logo shape */}
-          <line x1={centerX} y1={centerY - 18} x2={centerX} y2={centerY + 18} stroke="hsl(var(--foreground))" strokeWidth={3} />
-          <line x1={centerX - 18} y1={centerY} x2={centerX + 18} y2={centerY} stroke="hsl(var(--foreground))" strokeWidth={3} />
-          <line x1={centerX - 12} y1={centerY - 12} x2={centerX + 12} y2={centerY + 12} stroke="hsl(var(--foreground))" strokeWidth={2} />
-          <line x1={centerX + 12} y1={centerY - 12} x2={centerX - 12} y2={centerY + 12} stroke="hsl(var(--foreground))" strokeWidth={2} />
-          {/* Pulsing ring */}
-          <circle cx={centerX} cy={centerY} r={30} fill="none" stroke="#ea580c" strokeWidth={1}>
-            <animate
-              attributeName="r"
-              values="30;34;30"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="opacity"
-              values="0.6;0.2;0.6"
-              dur="3s"
-              repeatCount="indefinite"
-            />
+          <line x1={CENTER_X} y1={CENTER_Y - 18} x2={CENTER_X} y2={CENTER_Y + 18} stroke="hsl(var(--foreground))" strokeWidth={3} />
+          <line x1={CENTER_X - 18} y1={CENTER_Y} x2={CENTER_X + 18} y2={CENTER_Y} stroke="hsl(var(--foreground))" strokeWidth={3} />
+          <line x1={CENTER_X - 12} y1={CENTER_Y - 12} x2={CENTER_X + 12} y2={CENTER_Y + 12} stroke="hsl(var(--foreground))" strokeWidth={2} />
+          <line x1={CENTER_X + 12} y1={CENTER_Y - 12} x2={CENTER_X - 12} y2={CENTER_Y + 12} stroke="hsl(var(--foreground))" strokeWidth={2} />
+          <circle cx={CENTER_X} cy={CENTER_Y} r={30} fill="none" stroke="#ea580c" strokeWidth={1}>
+            <animate attributeName="r" values="30;34;30" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite" />
           </circle>
         </motion.g>
       </svg>

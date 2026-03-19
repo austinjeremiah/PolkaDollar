@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react"
 import { motion, useInView } from "framer-motion"
-import Image from "next/image"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -48,38 +47,30 @@ function BlinkDot() {
   return <span className="inline-block h-2 w-2 bg-[#ea580c] animate-blink" />
 }
 
-/* ── live uptime counter ── */
-function UptimeCounter() {
-  const [seconds, setSeconds] = useState(0)
+/* ── live block counter ── */
+function BlockCounter() {
+  const [block, setBlock] = useState(22481337)
 
   useEffect(() => {
-    const base = 31536000 + Math.floor(Math.random() * 1000000)
-    setSeconds(base)
-    const interval = setInterval(() => setSeconds((s) => s + 1), 1000)
+    const base = 22481337 + Math.floor(Math.random() * 100)
+    setBlock(base)
+    const interval = setInterval(() => setBlock((b) => b + 1), 6000)
     return () => clearInterval(interval)
   }, [])
 
-  const format = (n: number) => {
-    const d = Math.floor(n / 86400)
-    const h = Math.floor((n % 86400) / 3600)
-    const m = Math.floor((n % 3600) / 60)
-    const s = n % 60
-    return `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
-  }
-
   return (
     <span className="font-mono text-[#ea580c]" style={{ fontVariantNumeric: "tabular-nums" }}>
-      {format(seconds)}
+      #{block.toLocaleString()}
     </span>
   )
 }
 
 /* ── stat block ── */
 const STATS = [
-  { label: "MODELS_DEPLOYED", value: "147" },
-  { label: "EDGE_REGIONS", value: "50+" },
-  { label: "INFERENCE_CALLS", value: "12.8B" },
-  { label: "AVG_LATENCY", value: "4.2ms" },
+  { label: "EWMA_LAMBDA", value: "0.94" },
+  { label: "COLLAT_FLOOR", value: "130%" },
+  { label: "FIXED_SCALE", value: "1e12" },
+  { label: "XCM_DESTS", value: "3" },
 ]
 
 function StatBlock({ label, value, index }: { label: string; value: string; index: number }) {
@@ -94,10 +85,87 @@ function StatBlock({ label, value, index }: { label: string; value: string; inde
       <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
         {label}
       </span>
-      <span className="text-xl lg:text-2xl font-mono font-bold tracking-tight">
+      <span className="text-xl lg:text-2xl font-mono font-bold tracking-tight text-[#00d4b4]">
         <ScrambleText text={value} />
       </span>
     </motion.div>
+  )
+}
+
+/* ── contract code panel ── */
+const CODE_LINES = [
+  { text: "> POLKADOLLAR :: risk_engine.rs",     color: "#e4e4e7" },
+  { text: "> ──────────────────────────────────", color: "#3f3f46" },
+  { text: "> fn assess_collateral(",              color: "#a1a1aa" },
+  { text: ">   dot_price: u128,",                 color: "#a1a1aa" },
+  { text: ">   vault_dot: u128,",                 color: "#a1a1aa" },
+  { text: ">   debt_pusd: u128,",                 color: "#a1a1aa" },
+  { text: ">   variance: u128,",                  color: "#a1a1aa" },
+  { text: "> ) -> CollateralState {",             color: "#a1a1aa" },
+  { text: ">   let ratio =",                      color: "#e4e4e7" },
+  { text: ">     dot_price * vault_dot / debt;",  color: "#e4e4e7" },
+  { text: ">   match ratio {",                    color: "#e4e4e7" },
+  { text: ">     r if r >= 220 => SAFE,",         color: "#00d4b4" },
+  { text: ">     r if r >= 180 => HIGH,",         color: "#facc15" },
+  { text: ">     r if r >= 150 => MEDIUM,",       color: "#f97316" },
+  { text: ">     _ => LIQUIDATE",                 color: "#ef4444" },
+  { text: ">   }",                                color: "#e4e4e7" },
+  { text: "> }",                                  color: "#e4e4e7" },
+  { text: "> ──────────────────────────────────", color: "#3f3f46" },
+  { text: "> status: CONTRACT DEPLOYED",          color: "#00d4b4" },
+]
+
+function ContractPanel() {
+  const [lines, setLines] = useState<typeof CODE_LINES>([])
+  const [idx, setIdx] = useState(0)
+
+  useEffect(() => {
+    setLines([CODE_LINES[0]])
+    const interval = setInterval(() => {
+      setIdx((prev) => {
+        const next = prev + 1
+        if (next >= CODE_LINES.length) {
+          setLines([])
+          return 0
+        }
+        setLines((l) => [...l.slice(-14), CODE_LINES[next]])
+        return next
+      })
+    }, 400)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex flex-col h-full min-h-[400px] bg-[#0a0b0e]">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.1] bg-[#0d0f13]">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 bg-[#ea580c]" />
+          <span className="h-2 w-2 bg-zinc-600" />
+          <span className="h-2 w-2 border border-zinc-600" />
+        </div>
+        <span className="font-mono text-[10px] tracking-widest text-zinc-600 uppercase">
+          risk_engine.rs
+        </span>
+        <span className="font-mono text-[10px] tracking-widest text-zinc-600">PolkaVM</span>
+      </div>
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="flex flex-col gap-0.5">
+          {lines.map((line, i) => (
+            <span
+              key={`${idx}-${i}`}
+              className="text-xs font-mono block"
+              style={{
+                color: line.color,
+                opacity: i === lines.length - 1 ? 1 : i >= lines.length - 3 ? 0.8 : 0.5,
+              }}
+            >
+              {line.text}
+            </span>
+          ))}
+          <span className="text-xs font-mono text-[#00d4b4] animate-blink">{"_"}</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -125,42 +193,15 @@ export function AboutSection() {
 
       {/* Two-column layout */}
       <div className="flex flex-col lg:flex-row gap-0 border-2 border-foreground">
-        {/* Left: Image */}
+        {/* Left: Contract code terminal */}
         <motion.div
           initial={{ opacity: 0, x: -30, filter: "blur(6px)" }}
           whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease }}
-          className="relative w-full lg:w-1/2 min-h-[300px] lg:min-h-[500px] border-b-2 lg:border-b-0 lg:border-r-2 border-foreground overflow-hidden bg-foreground"
+          className="relative w-full lg:w-1/2 border-b-2 lg:border-b-0 lg:border-r-2 border-foreground overflow-hidden"
         >
-          {/* Image label overlay */}
-          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-foreground/80 backdrop-blur-sm">
-            <span className="text-[10px] tracking-[0.2em] uppercase text-background/60 font-mono">
-              RENDER: isometric_infrastructure.obj
-            </span>
-            <span className="text-[10px] tracking-[0.2em] uppercase text-[#ea580c] font-mono">
-              LIVE
-            </span>
-          </div>
-
-          <Image
-            src="/images/about-isometric.jpg"
-            alt="Isometric view of AI infrastructure with server racks and data pipelines"
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            priority
-          />
-
-          {/* Bottom image coordinates */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-foreground/80 backdrop-blur-sm">
-            <span className="text-[10px] tracking-[0.2em] uppercase text-background/40 font-mono">
-              {"CAM: -45deg / ISO"}
-            </span>
-            <span className="text-[10px] tracking-[0.2em] uppercase text-background/40 font-mono">
-              {"RES: 2048x2048"}
-            </span>
-          </div>
+          <ContractPanel />
         </motion.div>
 
         {/* Right: Content */}
@@ -174,10 +215,10 @@ export function AboutSection() {
           {/* Header bar */}
           <div className="flex items-center justify-between px-5 py-3 border-b-2 border-foreground">
             <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
-              MANIFEST.md
+              PROTOCOL.md
             </span>
             <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
-              v3.1.0
+              v1.0.0
             </span>
           </div>
 
@@ -191,9 +232,9 @@ export function AboutSection() {
                 transition={{ duration: 0.5, delay: 0.2, ease }}
                 className="text-2xl lg:text-3xl font-mono font-bold tracking-tight uppercase text-balance"
               >
-                Infrastructure built for
+                DOT collateral →{" "}
                 <br />
-                <span className="text-[#ea580c]">raw intelligence</span>
+                <span className="text-[#00d4b4]">pUSD synthetic dollar</span>
               </motion.h2>
 
               <motion.div
@@ -204,19 +245,20 @@ export function AboutSection() {
                 className="flex flex-col gap-4"
               >
                 <p className="text-xs lg:text-sm font-mono text-muted-foreground leading-relaxed">
-                  We engineer the substrate layer that sits between your models
-                  and your users. No abstractions. No magic. Just deterministic
-                  routing, sub-5ms inference, and transparent operational control
-                  across every edge node in the network.
+                  Lock DOT into a vault contract deployed on PolkaVM. The risk engine reads on-chain
+                  price feeds, computes an EWMA variance estimate with λ=0.94, and derives a
+                  regime-adjusted collateral floor. Minimum 130% collateral at LOW volatility,
+                  up to 220% at EXTREME. pUSD is minted only within the safe ratio band.
                 </p>
                 <p className="text-xs lg:text-sm font-mono text-muted-foreground leading-relaxed">
-                  Founded by systems engineers who spent a decade building
-                  distributed compute at hyperscale. We believe AI infrastructure
-                  should be inspectable, auditable, and brutally fast.
+                  Cross-chain transfers use XCM v4. The vault contract is written in Rust,
+                  the C++ stability gauge runs as a separate ink! contract. All arithmetic is
+                  fixed-point at 1e12 precision to avoid floating-point divergence across
+                  RISC-V execution environments.
                 </p>
               </motion.div>
 
-              {/* Uptime line */}
+              {/* Block line */}
               <motion.div
                 initial={{ opacity: 0, scaleX: 0.8 }}
                 whileInView={{ opacity: 1, scaleX: 1 }}
@@ -227,9 +269,9 @@ export function AboutSection() {
               >
                 <span className="h-1.5 w-1.5 bg-[#ea580c]" />
                 <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
-                  UPTIME:
+                  RELAY_BLOCK:
                 </span>
-                <UptimeCounter />
+                <BlockCounter />
               </motion.div>
             </div>
 

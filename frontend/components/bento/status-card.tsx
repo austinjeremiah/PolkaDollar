@@ -2,68 +2,73 @@
 
 import { useEffect, useState } from "react"
 
-const REGIONS = [
-  { name: "US-EAST-1", status: "ONLINE", latency: "3.8ms" },
-  { name: "EU-WEST-2", status: "ONLINE", latency: "4.1ms" },
-  { name: "AP-SOUTH-1", status: "ONLINE", latency: "4.6ms" },
-  { name: "US-WEST-2", status: "ONLINE", latency: "4.2ms" },
+const CHAINS = [
+  { name: "POLKADOT RELAY", status: "FINALIZED", paraId: "relay" },
+  { name: "ASSET HUB", status: "FINALIZED", paraId: "1000" },
+  { name: "HYDRATION", status: "FINALIZED", paraId: "2034" },
+  { name: "POLKADOLLAR", status: "ACTIVE", paraId: "3000" },
 ]
 
 export function StatusCard() {
   const [tick, setTick] = useState(0)
+  const [blockNum, setBlockNum] = useState(22481337)
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTick((t) => t + 1)
-    }, 2000)
+      setBlockNum((b) => b + 1)
+    }, 6000)
     return () => clearInterval(interval)
   }, [])
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2">
-        <span className="text-[10px] tracking-widest text-muted-foreground uppercase">
-          edge_nodes.status
+        <span className="text-[10px] tracking-widest text-muted-foreground uppercase font-mono">
+          xcm_nodes.status
         </span>
-        <span className="text-[10px] tracking-widest text-muted-foreground">
-          {`TICK:${String(tick).padStart(4, "0")}`}
+        <span className="text-[10px] tracking-widest text-muted-foreground font-mono">
+          {`BLK:${blockNum.toLocaleString()}`}
         </span>
       </div>
       <div className="flex-1 flex flex-col p-4 gap-0">
         {/* Table header */}
         <div className="grid grid-cols-3 gap-2 border-b border-border pb-2 mb-2">
-          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground">Region</span>
-          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground">Status</span>
-          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground text-right">Latency</span>
+          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground font-mono">Chain</span>
+          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground font-mono">State</span>
+          <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground font-mono text-right">paraId</span>
         </div>
-        {REGIONS.map((region) => (
+        {CHAINS.map((chain) => (
           <div
-            key={region.name}
+            key={chain.name}
             className="grid grid-cols-3 gap-2 py-2 border-b border-border last:border-none"
           >
-            <span className="text-xs font-mono text-foreground">{region.name}</span>
+            <span className="text-xs font-mono text-foreground">{chain.name}</span>
             <div className="flex items-center gap-2">
               <span
                 className="h-1.5 w-1.5"
                 style={{
-                  backgroundColor: region.status === "ONLINE" ? "#ea580c" : "hsl(var(--muted-foreground))",
+                  backgroundColor: chain.status === "ACTIVE" ? "#00d4b4" : "#ea580c",
                 }}
               />
-              <span className="text-xs font-mono text-muted-foreground">{region.status}</span>
+              <span className="text-xs font-mono text-muted-foreground">{chain.status}</span>
             </div>
-            <span className="text-xs font-mono text-foreground text-right">{region.latency}</span>
+            <span className="text-xs font-mono text-foreground text-right">{chain.paraId}</span>
           </div>
         ))}
-        {/* Throughput bar */}
+        {/* XCM channel bar */}
         <div className="mt-auto pt-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground">
-              Global Throughput
+            <span className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground font-mono">
+              XCM Channel Capacity
             </span>
-            <span className="text-[9px] font-mono text-foreground">87%</span>
+            <span className="text-[9px] font-mono text-foreground">{`${60 + (tick % 30)}%`}</span>
           </div>
           <div className="h-2 w-full border border-foreground">
-            <div className="h-full bg-foreground" style={{ width: "87%" }} />
+            <div
+              className="h-full bg-[#00d4b4] transition-all duration-1000"
+              style={{ width: `${60 + (tick % 30)}%` }}
+            />
           </div>
         </div>
       </div>

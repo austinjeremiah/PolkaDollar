@@ -91,7 +91,7 @@ export function TerminalCard() {
           risk.engine.sys
         </span>
       </div>
-      <div className="flex-1 bg-[#0a0b0e] p-4 overflow-hidden">
+      <div className="flex-1 bg-[#0a0b0e] p-4 overflow-hidden flex flex-col justify-end">
         <div className="flex flex-col gap-0.5">
           {lines.map((line, i) => (
             <span

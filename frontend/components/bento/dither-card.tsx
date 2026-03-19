@@ -59,19 +59,37 @@ export function DitherCard() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2">
-        <span className="text-[10px] tracking-widest text-muted-foreground uppercase">
-          neural_scan.dither
+        <span className="text-[10px] tracking-widest text-muted-foreground uppercase font-mono">
+          pvm_state.render
         </span>
-        <span className="text-[10px] tracking-widest text-muted-foreground">320x240</span>
+        <span className="text-[10px] tracking-widest text-muted-foreground font-mono">320x240</span>
       </div>
-      <div className="flex-1 flex items-center justify-center p-4 bg-background overflow-hidden">
+      <div className="flex-1 flex flex-col bg-background overflow-hidden">
         <canvas
           ref={canvasRef}
           className="w-full h-auto"
           style={{ imageRendering: "pixelated" }}
-          aria-label="Dithered neural network visualization"
+          aria-label="Dithered PolkaVM state visualization"
           role="img"
         />
+        <div className="px-4 py-3 border-t border-white/[0.08] flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono tracking-widest uppercase text-zinc-600">EXEC_MODEL</span>
+            <span className="text-[9px] font-mono text-[#00d4b4]">POLKAVM / RISC-V</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono tracking-widest uppercase text-zinc-600">CONTRACT_LANG</span>
+            <span className="text-[9px] font-mono text-zinc-300">RUST + C++</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono tracking-widest uppercase text-zinc-600">FIXED_POINT</span>
+            <span className="text-[9px] font-mono text-zinc-300">1e12 PRECISION</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono tracking-widest uppercase text-zinc-600">STORAGE_LAYOUT</span>
+            <span className="text-[9px] font-mono text-zinc-300">SUBSTRATE TRIE</span>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -16,14 +16,14 @@ export function Footer() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-mono tracking-[0.15em] uppercase font-bold text-foreground">
-            SYS.INT
+            POLKADOLLAR
           </span>
           <span className="text-[10px] font-mono tracking-widest text-muted-foreground">
-            {"(C) 2026 SYSTEM INTELLIGENCE CORP."}
+            {"(C) 2026 POLKADOLLAR PROTOCOL — PolkaVM / Substrate"}
           </span>
         </div>
         <div className="flex items-center gap-6">
-          {["Privacy", "Terms", "Status", "GitHub"].map((link, i) => (
+          {["Docs", "Contracts", "Audit", "GitHub"].map((link, i) => (
             <motion.a
               key={link}
               href="#"
