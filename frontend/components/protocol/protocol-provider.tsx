@@ -39,6 +39,11 @@ type RatioPoint = {
   volatilityPct: number;
 };
 
+type StabilityResult = {
+  score: number;
+  flag: number;
+} | null;
+
 type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "failed";
 
 type XcmTxProof = {
@@ -67,6 +72,7 @@ type ProtocolContextValue = {
   xcmDestination: string;
   xcmPrecompile: string;
   oracleStale: boolean;
+  stabilityResult: StabilityResult;
   connectWallet: () => Promise<void>;
   switchNetwork: () => Promise<void>;
   refresh: (address?: string, silent?: boolean) => Promise<void>;
@@ -178,6 +184,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>("idle");
   const [xcmTxProof, setXcmTxProof] = useState<XcmTxProof>(null);
   const [oracleStale, setOracleStale] = useState(false);
+  const [stabilityResult, setStabilityResult] = useState<StabilityResult>(null);
 
   const [position, setPosition] = useState<PositionState>({
     collateral: "0",
@@ -299,12 +306,13 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
       ["function lastUpdatedAt() view returns (uint256)"],
       readProvider
     );
-    const [vaultStateResult, balanceResult, priceResult, riskResult, oracleResult] = await Promise.allSettled([
+    const [vaultStateResult, balanceResult, priceResult, riskResult, oracleResult, stabilityResult] = await Promise.allSettled([
       backend.getVaultState(address),
       backend.getPusdBalance(address),
       backend.getCurrentPrice(),
       fetchRiskState(),
       priceFeedContract.lastUpdatedAt() as Promise<bigint>,
+      backend.getStabilityResult(address),
     ]);
 
     const errors: string[] = [];
@@ -344,6 +352,10 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
     if (oracleResult.status === "fulfilled") {
       setOracleStale(Math.floor(Date.now() / 1000) - Number(oracleResult.value) > 1800);
+    }
+
+    if (stabilityResult.status === "fulfilled") {
+      setStabilityResult({ score: stabilityResult.value.score, flag: stabilityResult.value.flag });
     }
 
     setPosition((prev) => ({ ...prev, ...positionUpdate }));
@@ -513,6 +525,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     xcmDestination: backend.xcmDestHydration,
     xcmPrecompile: backend.addresses.xcmPrecompile,
     oracleStale,
+    stabilityResult,
     connectWallet,
     switchNetwork,
     refresh,
@@ -545,6 +558,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     sendCrossChain,
     getVaultStateFor,
     oracleStale,
+    stabilityResult,
     stats,
     status,
     switchNetwork,

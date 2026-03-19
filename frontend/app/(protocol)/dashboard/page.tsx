@@ -4,6 +4,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { usePriceDirection, useProtocol } from "@/components/protocol/protocol-provider";
 import { RiskGauge } from "@/components/protocol/risk-gauge";
+import { StabilityGauge } from "@/components/protocol/stability-gauge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function regimeBg(regime: string) {
@@ -14,9 +15,11 @@ function regimeBg(regime: string) {
 }
 
 export default function DashboardPage() {
-  const { position, riskState, stats, lastUpdatedAt, priceHistory, ratioHistory } = useProtocol();
+  const { position, riskState, stats, lastUpdatedAt, priceHistory, ratioHistory, stabilityResult } = useProtocol();
   const trend = usePriceDirection();
   const trendUp = trend >= 0;
+
+  const hasResult = stabilityResult !== null;
 
   return (
     <section className="space-y-5">
@@ -80,7 +83,19 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <RiskGauge regime={riskState.regime} volatilityPct={riskState.volatilityPct} ratioPct={riskState.ratioBps / 100} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">Rust Risk Engine</p>
+          <RiskGauge regime={riskState.regime} volatilityPct={riskState.volatilityPct} ratioPct={riskState.ratioBps / 100} />
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">C++ Stability Analyzer</p>
+          <StabilityGauge
+            flag={(hasResult ? stabilityResult!.flag : 0) as 0 | 1 | 2}
+            hasResult={hasResult}
+          />
+        </div>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="border-white/10 bg-[#141925]">
@@ -120,6 +135,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
     </section>
   );
 }

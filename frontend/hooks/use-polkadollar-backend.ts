@@ -8,6 +8,7 @@ type BackendConfig = {
   pusdAddress: string;
   priceFeedAddress: string;
   riskEngineAddress: string;
+  stabilityAnalyzerAddress: string;
   xcmPrecompile: string;
   xcmDestination: string;
   rpcUrl: string;
@@ -55,11 +56,17 @@ declare global {
   }
 }
 
+const STABILITY_ANALYZER_ABI = [
+  "function analyze(address user) returns (uint64 score, uint64 flag)",
+  "event StabilityChecked(address indexed user, uint64 score, uint64 flag)",
+];
+
 const config: BackendConfig = {
   vaultAddress: process.env.NEXT_PUBLIC_VAULT_ADDRESS || "0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae",
   pusdAddress: process.env.NEXT_PUBLIC_PUSD_ADDRESS || "0x876df4BBD21ec38f78D6AEbF9687a89445821BE7",
   priceFeedAddress: process.env.NEXT_PUBLIC_PRICE_FEED_ADDRESS || "0xCDe170C92E281757aD961Ba47B33DFacd827a761",
   riskEngineAddress: process.env.NEXT_PUBLIC_RISK_ENGINE_ADDRESS || "0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B",
+  stabilityAnalyzerAddress: process.env.NEXT_PUBLIC_STABILITY_ANALYZER_ADDRESS || "0x6B22F224B7534F8cf446212BA2bA0446dFe4cF57",
   xcmPrecompile: process.env.NEXT_PUBLIC_XCM_PRECOMPILE || "0x000000000000000000000000000000000000A000",
   xcmDestination:
     process.env.NEXT_PUBLIC_XCM_DEST_HYDRATION ||
@@ -435,6 +442,20 @@ export function usePolkadollarBackend() {
     [assertWriteContext, getSigner, getTxOverrides, toReadableError, withLoading]
   );
 
+  const getStabilityResult = useCallback(
+    async (userAddress: string): Promise<{ score: number; flag: number }> => {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        config.stabilityAnalyzerAddress,
+        ["function analyze(address user) returns (uint64 score, uint64 flag)"],
+        provider
+      );
+      const [score, flag] = await contract.analyze.staticCall(userAddress) as [bigint, bigint];
+      return { score: Number(score), flag: Number(flag) };
+    },
+    [getReadProvider]
+  );
+
   const sendXcmToHydration = useCallback(
     async (messageHex: string): Promise<TxResult> => sendXcm(config.xcmDestination, messageHex),
     [config.xcmDestination, sendXcm]
@@ -523,6 +544,9 @@ export function usePolkadollarBackend() {
     // Price
     getCurrentPrice,
 
+    // Stability
+    getStabilityResult,
+
     // XCM
     sendXcm,
     sendXcmToHydration,
@@ -536,6 +560,7 @@ export function usePolkadollarBackend() {
       pusd: config.pusdAddress,
       priceFeed: config.priceFeedAddress,
       riskEngine: config.riskEngineAddress,
+      stabilityAnalyzer: config.stabilityAnalyzerAddress,
       xcmPrecompile: config.xcmPrecompile,
     },
     xcmDestHydration: config.xcmDestination,

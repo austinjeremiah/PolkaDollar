@@ -1,0 +1,15 @@
+[33mbbf1fdcd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m frontend fix: suppressHydrationWarning
+[33ma6e6992d[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat : Arrow pivot point fix'
+[33mb9a7600f[m feat : Fixed risk-guage.ts ui along with risk_engine.rs fix for showing on chain risk assement value to the ui 2
+[33m34bbaf19[m feat : Fixed risk-guage.ts ui along with risk_engine.rs fix for showing on chain risk assement value to the ui
+[33md7c2a8aa[m Coin geeko fix
+[33m02dc6c7e[m feat: wire frontend to live backend + relay-chain XCM flow
+[33me7918327[m feat(xcm, integration): XCM bridge to Hydration + frontend backend integration
+[33mb00b5acc[m Landing changes
+[33mf91e504f[m Remix contracts added
+[33mec31b7cc[m Add risk-engine code v1
+[33m152f5f9b[m Add risk-engine code v1
+[33m72199ca2[m Add demo-03 cross-VM fibonacci contract
+[33m4fdc7086[m chore: ignore and untrack DS_Store
+[33m550e4f4e[m feat : Initial frontend commit
+[33m97ef24b6[m Initial commit
