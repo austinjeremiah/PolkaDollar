@@ -9,7 +9,7 @@ const ease = [0.22, 1, 0.36, 1] as const
 
 export function HeroSection() {
   return (
-    <section className="relative w-full px-12 pt-6 pb-12 lg:px-24 lg:pt-10 lg:pb-16">
+    <section className="relative w-full min-h-[calc(100vh-80px)] flex flex-col justify-center px-12 pt-16 pb-12 lg:px-24 lg:pt-20 lg:pb-16">
       <div className="flex flex-col items-center text-center">
         {/* Top headline: DEPLOY. SCALE. -- Geist Pixel Grid */}
         <motion.h1

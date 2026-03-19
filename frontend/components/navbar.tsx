@@ -1,9 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Cpu } from "lucide-react"
 import { motion } from "framer-motion"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
   const links = [
@@ -22,22 +20,9 @@ export function Navbar() {
       className="w-full px-4 pt-4 lg:px-6 lg:pt-6"
     >
       <nav className="w-full border border-foreground/20 bg-background/80 backdrop-blur-sm px-6 py-3 lg:px-8">
-        <div className="relative flex items-center justify-between">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="flex items-center gap-3"
-          >
-            <Cpu size={16} strokeWidth={1.5} />
-            <span className="text-xs font-mono tracking-[0.15em] uppercase font-bold">
-              POLKADOLLAR
-            </span>
-          </motion.div>
-
-          {/* Center nav links */}
-          <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-[53  %]">
+        <div className="flex items-center justify-center">
+          {/* Centered nav links */}
+          <div className="hidden md:flex items-center gap-8">
             {links.map((link, i) => (
               <motion.div
                 key={link.label}
@@ -52,17 +37,6 @@ export function Navbar() {
               </motion.div>
             ))}
           </div>
-
-          {/* Right side: Login + CTA */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="flex items-center gap-4"
-          >
-            <ThemeToggle />
-            
-          </motion.div>
         </div>
       </nav>
     </motion.div>

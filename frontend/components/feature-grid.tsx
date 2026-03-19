@@ -46,7 +46,7 @@ export function FeatureGrid() {
         <motion.div
           custom={0}
           variants={cardVariants}
-          className="border-b-2 md:border-b-0 md:border-r-2 border-foreground min-h-[280px]"
+          className="border-b-2 md:border-b-0 md:border-r-2 border-foreground min-h-[520px]"
         >
           <TerminalCard />
         </motion.div>
