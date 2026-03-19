@@ -63,7 +63,7 @@ export function StabilityGauge({ flag, hasResult, compact = false }: Props) {
   const rightX = baseX - perpX * headHalfWidth;
   const rightY = baseY - perpY * headHalfWidth;
 
-  const needleColor = hasResult ? FLAG_COLORS[activeFlag] : "#3f3f46";
+  const needleColor = hasResult ? "#d4d4d8" : "#3f3f46";
 
   return (
     <div>
@@ -83,7 +83,7 @@ export function StabilityGauge({ flag, hasResult, compact = false }: Props) {
           <g transform="translate(180 180)">
             <line x1={startX} y1={startY} x2={tipX} y2={tipY} stroke={needleColor} strokeWidth="4" strokeLinecap="round" />
             <path d={`M${tipX},${tipY} L${leftX},${leftY} L${rightX},${rightY} Z`} fill={needleColor} />
-            <circle cx="0" cy="0" r="8" fill={hasResult ? "#fafafa" : "#3f3f46"} />
+            <circle cx="0" cy="0" r="8" fill="#fafafa" />
           </g>
 
           <text x="32" y="202" fill="#6b7280" fontSize="12">STABLE</text>
@@ -99,10 +99,8 @@ export function StabilityGauge({ flag, hasResult, compact = false }: Props) {
         </p>
       </div>
 
-      <p className="mt-3 text-center text-xs text-zinc-600">
-        Stability computed on-chain by{" "}
-        <span className="text-pink-400">C++ contract on PolkaVM</span>
-        {" "}— called from Solidity in a single atomic transaction
+      <p className="mt-3 text-center text-sm text-zinc-200">
+        Safer borrowing with real-time protection
       </p>
     </div>
   );

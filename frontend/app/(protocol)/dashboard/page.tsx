@@ -15,7 +15,7 @@ function regimeColor(regime: string) {
 
 function MbCard({ children, coords = "X:0 Y:0", className = "" }: { children: React.ReactNode; coords?: string; className?: string }) {
   return (
-    <div className={`rounded-sm border border-white/[0.08] bg-[#0d0f13] ${className}`}>
+    <div className={`rounded-sm border border-white/[0.18] bg-[#0d0f13] ${className}`}>
       <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
         <div className="flex items-center gap-2 text-zinc-600">
           <Minus className="h-3 w-3" />
@@ -46,7 +46,7 @@ export default function DashboardPage() {
         <MbCard coords="X:0 Y:0">
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-200">DOT Price</p>
           <p className="mt-1 text-[11px] text-zinc-600">Last updated {lastUpdatedAt || "-"}</p>
-          <p className="mt-3 font-mono text-4xl font-bold text-white">
+          <p className="mt-3 font-pixel text-4xl text-white">
             ${Number(position.dotPrice || "0").toFixed(2)}
           </p>
           <p className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-zinc-500">
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         <MbCard coords="X:1 Y:0">
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-200">Risk Regime</p>
           <p className="mt-1 text-[11px] text-zinc-600">On-chain EWMA variance</p>
-          <p className={`mt-3 font-mono text-4xl font-bold ${regimeColor(riskState.regime)}`}>
+          <p className={`mt-3 font-pixel text-4xl ${regimeColor(riskState.regime)}`}>
             {riskState.regime}
           </p>
           <p className={`mt-2 font-mono text-xs ${regimeColor(riskState.regime)}`}>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
         <MbCard coords="X:2 Y:0">
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-200">Collateral Ratio</p>
           <p className="mt-1 text-[11px] text-zinc-600">Dynamic from Rust risk engine</p>
-          <p className="mt-3 font-mono text-4xl font-bold text-white">
+          <p className="mt-3 font-pixel text-4xl text-white">
             {(riskState.ratioBps / 100).toFixed(0)}%
           </p>
         </MbCard>
@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
         <MbCard coords="X:1 Y:1">
           <p className="mb-3 text-xs font-mono uppercase tracking-widest text-zinc-200">C++ Stability Analyzer</p>
-          <StabilityGauge flag={hasResult ? stabilityResult!.flag : 0} hasResult={hasResult} />
+          <StabilityGauge flag={hasResult ? stabilityResult!.flag as 0 | 1 | 2 : 0} hasResult={hasResult} />
         </MbCard>
       </div>
 
