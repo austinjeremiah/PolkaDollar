@@ -1,4 +1,5 @@
-# PolkaDollar (pUSD)
+<img width="1019" height="181" alt="image" src="https://github.com/user-attachments/assets/e8701c00-5a47-440d-a0f4-3437b9323910" />
+
 
 A collateralized debt protocol on Polkadot Hub (EVM) that lets users deposit DOT, mint a USD-pegged token (pUSD), and send assets cross-chain via XCM. Collateral ratios are computed dynamically by a Rust contract running on PolkaVM — called atomically from Solidity within the same transaction.
 
