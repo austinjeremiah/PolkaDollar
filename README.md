@@ -79,6 +79,45 @@ Regimes and collateral ratios:
 | HIGH | σ < 9.49% | 185% |
 | EXTREME | σ ≥ 9.49% | 220% |
 
+### C++ Stability Score Model
+
+The C++ contract computes a composite stability score across four dimensions for each position. All arithmetic is integer-based (scaled by 1e6) to match PVM's deterministic execution guarantees — no floating point.
+
+```
+score = w₁ · collateralScore + w₂ · debtScore + w₃ · volatilityScore + w₄ · ratioScore
+```
+
+Where the weights are:
+
+| Weight | Value | Dimension |
+|---|---|---|
+| `w₁` | 0.35 | Collateral buffer above minimum required |
+| `w₂` | 0.25 | Debt-to-collateral utilization |
+| `w₃` | 0.25 | Volatility penalty (σ from Rust EWMA, passed in) |
+| `w₄` | 0.15 | Distance from current ratio to EXTREME threshold |
+
+Each dimension is normalized to `[0, 100]` before weighting. The final score is an integer in `[0, 100]`.
+
+Score-to-flag mapping:
+
+| Score Range | Flag | Meaning |
+|---|---|---|
+| 75 – 100 | `STABLE` | Position is well-collateralized; no action needed |
+| 40 – 74 | `CAUTION` | Position is approaching risk boundaries |
+| 0 – 39 | `AT_RISK` | Position is near liquidation; immediate action recommended |
+
+The C++ contract exposes two entry points:
+- `analyze(user)` — reads vault state on-chain for a given address and scores it
+- `analyzeRaw(collateralUSD, debt, volatility, ratio)` — scores arbitrary parameters directly, used by the frontend risk monitor
+
+Because the score depends on the volatility value emitted by the Rust EWMA contract, the full risk pipeline in a single `mint()` call is:
+
+```
+CollateralVault → RiskEngineCaller (Rust/PVM) → StabilityAnalyzer (C++/PVM)
+```
+
+Both cross-VM calls are dispatched via `pallet-revive` within the same atomic transaction.
+
 ### Health Factor
 
 ```
@@ -108,6 +147,7 @@ All deployed on **Paseo Asset Hub / Polkadot Hub TestNet** (Chain ID: `420420417
 | RiskEngine (Rust/PVM) | `0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B` |
 | RiskEngineCaller (EVM) | `0xF11336b3910426e1A4433adA20E19eA73876A306` |
 | StabilityAnalyzer (C++) | `0x6B22F224B7534F8cf446212BA2bA0446dFe4cF57` |
+| StabilityEngine (C++) | `0x0a86C6f085E7De256F44fADb7F39DEB122d8017c` |
 | XCMTransfer | `0x0bbB5aA6EDc0d7027e9893d405a80E0f47204fED` |
 
 **Network**
@@ -370,6 +410,9 @@ A fixed ratio is either too tight (undercollateralized during volatility spikes)
 
 **Why Rust on PVM for the risk model?**
 Fixed-point EWMA needs precise arithmetic without floating point. Rust gives deterministic behavior and the ability to use integer math that matches the EVM's execution guarantees. The call happens in the same block as the mint — no oracle lag, no separate keeper transaction.
+
+**Why C++ on PVM for the stability analyzer?**
+The multi-dimensional scoring model involves several parallel weighted computations that map naturally to C++ value semantics. Like the Rust contract, the C++ contract compiles to PVM bytecode and uses only integer arithmetic (scaled by 1e6) — no floating point, fully deterministic. The `analyzeRaw` entry point accepts the same volatility value returned by the Rust EWMA contract, so both models share a single coherent risk state per transaction.
 
 **Why pallet-revive instead of a precompile?**
 pallet-revive transparently routes EVM calls to PVM contracts. The Solidity code uses a normal external call — no custom ABI encoding at the call site. The routing is handled at the runtime level.
