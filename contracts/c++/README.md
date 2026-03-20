@@ -10,6 +10,8 @@
 This is the **Stability Engine** — a smart contract written in C++ that computes a real-time protocol health score for the PolkaDollar lending protocol.
 
 It is one of the first C++ contracts ever deployed on Polkadot Hub. It runs on PolkaVM alongside Solidity (EVM) and Rust (PVM) contracts, demonstrating true cross-language smart contract execution on the same chain.
+<img width="442" height="1060" alt="c++_flowchart" src="https://github.com/user-attachments/assets/ced7a29d-40cd-447e-b66f-43e3d6c0c5ec" />
+
 
 ### What It Computes
 
