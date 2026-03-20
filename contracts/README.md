@@ -273,7 +273,7 @@ Polkadollar/
 
 ## Deploying Contracts
 
-> **Note:** The C++ StabilityEngine (`cpp-calculator/`) has its own separate build and deploy pipeline. See [`cpp-calculator/README.md`](./c++/README.md) for those instructions.
+> **Note:** The C++ StabilityEngine (`c++/`) has its own separate build and deploy pipeline. See [`c++/README.md`](./c++/README.md) for those instructions.
 
 ### Prerequisites
 
