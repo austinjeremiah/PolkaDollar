@@ -44,7 +44,7 @@ type StabilityResult = {
   flag: number;
 } | null;
 
-const DEMO_FORCE_STABILITY_AT_RISK = true;
+const DEMO_FORCE_STABILITY_AT_RISK = false;
 
 type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "failed";
 
