@@ -32,6 +32,19 @@ ETH-based stablecoin protocols use fixed collateral ratios. During high volatili
 
 ---
 
+## Getting Started
+
+Each part of this repo has its own README with full setup and deployment instructions:
+
+| Part | README |
+|---|---|
+| Contracts (Solidity + Rust) | [`contracts/README.md`](./contracts/README.md) |
+| C++ StabilityEngine | [`contracts/c++/README.md`](./contracts/c++/README.md) |
+| Frontend | [`frontend/README.md`](./frontend/README.md) |
+
+
+---
+
 ## Architecture
 
 <img width="1748" height="1239" alt="flowchart_draft2" src="https://github.com/user-attachments/assets/38538727-a6b8-469a-b9ee-98cf1eb4f446" />
@@ -188,17 +201,6 @@ Calls the XCM precompile at `0x000000000000000000000000000000000000A000`.
 
 ---
 
-## Getting Started
-
-Each part of this repo has its own README with full setup and deployment instructions:
-
-| Part | README |
-|---|---|
-| Contracts (Solidity + Rust) | [`contracts/README.md`](./contracts/README.md) |
-| C++ StabilityEngine | [`contracts/c++/README.md`](./contracts/c++/README.md) |
-| Frontend | [`frontend/README.md`](./frontend/README.md) |
-
----
 
 ## Key Design Decisions
 
