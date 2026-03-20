@@ -44,6 +44,8 @@ type StabilityResult = {
   flag: number;
 } | null;
 
+const DEMO_FORCE_STABILITY_AT_RISK = true;
+
 type BridgeStatus = "idle" | "encoding" | "submitting" | "confirming" | "submitted" | "failed";
 
 type XcmTxProof = {
@@ -355,7 +357,9 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
       setOracleStale(Math.floor(Date.now() / 1000) - Number(oracleResult.value) > 1800);
     }
 
-    if (stabilityResult.status === "fulfilled") {
+    if (DEMO_FORCE_STABILITY_AT_RISK) {
+      setStabilityResult({ score: 95, flag: 2 });
+    } else if (stabilityResult.status === "fulfilled") {
       setStabilityResult({ score: stabilityResult.value.score, flag: stabilityResult.value.flag });
     }
 
@@ -382,7 +386,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
   const executeAction = useCallback(async (label: string, action: () => Promise<{ hash: string }>) => {
     if (txInFlightRef.current) {
       toast.warning("A transaction is already in progress. Wait for it to confirm.");
-      return;
+      return false;
     }
     txInFlightRef.current = true;
     backend.clearError();
@@ -395,11 +399,12 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
       toast.success(`${label} confirmed`, { id: submitToast });
       setStatus(`${label} confirmed`);
       await refresh(wallet, true);
+      return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : `${label} failed`;
       toast.error(message, { id: submitToast });
       setStatus(`${label} failed: ${message}`);
-      throw err;
+      return false;
     } finally {
       txInFlightRef.current = false;
     }
@@ -454,7 +459,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
     setBridgeStatus("submitting");
     setXcmTxProof(null);
 
-    await executeAction("XCM send", async () => {
+    const success = await executeAction("XCM send", async () => {
       const result = await backend.sendXcm(destHex, messageHex);
       setBridgeStatus("confirming");
       if (result.receipt) {
@@ -469,7 +474,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
       return result;
     });
 
-    setBridgeStatus("submitted");
+    setBridgeStatus(success ? "submitted" : "failed");
   }, [backend, executeAction]);
 
   const getVaultStateFor = useCallback(async (address: string) => {

@@ -120,6 +120,11 @@ export function usePolkadollarBackend() {
   const extractErrorMessage = useCallback((err: unknown, fallback: string): string => {
     const e = err as RpcLikeError;
 
+    const errorCode = String(e?.code ?? "").toUpperCase();
+    if (errorCode === "ACTION_REJECTED" || errorCode === "4001") {
+      return "Transaction cancelled in wallet";
+    }
+
     const nestedMessage =
       e?.error?.message ||
       e?.info?.error?.message ||
@@ -133,7 +138,13 @@ export function usePolkadollarBackend() {
 
     if (nestedMessage) return nestedMessage;
     if (e?.shortMessage) return e.shortMessage;
-    if (e?.message) return e.message;
+    if (e?.message) {
+      const lower = e.message.toLowerCase();
+      if (lower === "rejected" || lower.includes("user rejected")) {
+        return "Transaction cancelled in wallet";
+      }
+      return e.message;
+    }
 
     return fallback;
   }, []);

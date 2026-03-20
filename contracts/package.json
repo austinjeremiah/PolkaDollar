@@ -22,6 +22,7 @@
     "xcm:send": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run scripts/send-xcm-direct.ts --network hub",
     "xcm:send:hydration": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true XCM_DEST_TARGET=hydration hardhat run scripts/send-xcm-direct.ts --network hub",
     "xcm:watch": "hardhat run scripts/xcm-watch.ts --network hub",
+    "simulate:spike": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run scripts/simulate-spike.ts --network hub",
     "simulate:reset": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run scripts/simulate-reset.ts --network hub",
     "demo:all": "npm run build:rust && npm run compile && npm run demo",
     "clean": "hardhat clean"

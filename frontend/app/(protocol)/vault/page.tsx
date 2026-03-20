@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 const EXPLORER_BASE = (process.env.NEXT_PUBLIC_EXPLORER_URL || "https://blockscout-testnet.polkadot.io/").replace(/\/$/, "");
+const DEMO_FORCE_SHOW_LIQUIDATE = true;
 
 function healthClass(hf: number) {
   if (hf >= 2) return "text-emerald-400";
@@ -96,6 +97,7 @@ export default function VaultPage() {
 
   const targetHf = Number(targetState?.healthFactor || "999");
   const targetLiquidatable = targetState ? targetHf < 1.2 : false;
+  const canLiquidateNow = targetState ? (targetLiquidatable || DEMO_FORCE_SHOW_LIQUIDATE) : false;
 
   return (
     <section className="space-y-5">
@@ -223,9 +225,11 @@ export default function VaultPage() {
                   <p className="text-zinc-400">Collateral: <span className="text-zinc-200">{targetState.collateral} DOT</span></p>
                   <p className="text-zinc-400">Debt: <span className="text-zinc-200">{targetState.debt} pUSD</span></p>
                   <p className="text-zinc-400">Health Factor: <span className={cn("text-zinc-200", healthClass(targetHf))}>{targetState.healthFactor}</span></p>
-                  {targetLiquidatable ? (
+                  {canLiquidateNow ? (
                     <div className="mt-3 space-y-2">
-                      <p className="text-red-400">This position is liquidatable.</p>
+                      <p className="text-red-400">
+                        {targetLiquidatable ? "This position is liquidatable." : "Liquidate"}
+                      </p>
                       <MbButton disabled={loading} onClick={() => void liquidatePosition(targetAddress)}>Liquidate</MbButton>
                     </div>
                   ) : (
