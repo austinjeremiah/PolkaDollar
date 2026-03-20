@@ -1,6 +1,5 @@
 <img width="1019" height="181" alt="image" src="https://github.com/user-attachments/assets/e8701c00-5a47-440d-a0f4-3437b9323910" />
 
-
 A collateralized debt protocol on Polkadot Hub (EVM) that lets users deposit DOT, mint a USD-pegged token (pUSD), and send assets cross-chain via XCM. Collateral ratios are computed dynamically by a Rust contract running on PolkaVM — called atomically from Solidity within the same transaction.
 
 ---
@@ -34,6 +33,8 @@ ETH-based stablecoin protocols use fixed collateral ratios. During high volatili
 ---
 
 ## Architecture
+
+<img width="1748" height="1239" alt="flowchart_draft2" src="https://github.com/user-attachments/assets/38538727-a6b8-469a-b9ee-98cf1eb4f446" />
 
 ```
 User (MetaMask)
@@ -81,42 +82,30 @@ Regimes and collateral ratios:
 
 ### C++ Stability Score Model
 
-The C++ contract computes a composite stability score across four dimensions for each position. All arithmetic is integer-based (scaled by 1e6) to match PVM's deterministic execution guarantees — no floating point.
+The C++ contract computes a composite stability score from three components. All arithmetic is integer-based — no floating point — fully deterministic on PVM.
 
-```
-score = w₁ · collateralScore + w₂ · debtScore + w₃ · volatilityScore + w₄ · ratioScore
-```
+**Component 1 — Collateralization (0–40 pts)**
+- `col_ratio = (totalCollateralUSD × 100) / totalDebt`
+- col_ratio ≥ 300% → 40 pts
+- col_ratio 120–300% → scaled linearly
+- col_ratio < 120% → 0 pts
 
-Where the weights are:
+**Component 2 — Volatility (0–30 pts)**
+- volatility input is ×100 (e.g. 5% = 500)
+- volatility ≤ 200 (2%) → 30 pts
+- volatility ≥ 3000 (30%) → 0 pts
+- between → scaled linearly
 
-| Weight | Value | Dimension |
-|---|---|---|
-| `w₁` | 0.35 | Collateral buffer above minimum required |
-| `w₂` | 0.25 | Debt-to-collateral utilization |
-| `w₃` | 0.25 | Volatility penalty (σ from Rust EWMA, passed in) |
-| `w₄` | 0.15 | Distance from current ratio to EXTREME threshold |
+**Component 3 — Ratio buffer (0–30 pts)**
+- ratio 220 → 30 pts | ratio 180 → 20 pts | ratio 150 → 10 pts | ratio 130 → 5 pts
 
-Each dimension is normalized to `[0, 100]` before weighting. The final score is an integer in `[0, 100]`.
+Final score = sum of three components, capped at 100.
 
-Score-to-flag mapping:
-
-| Score Range | Flag | Meaning |
-|---|---|---|
-| 75 – 100 | `STABLE` | Position is well-collateralized; no action needed |
-| 40 – 74 | `CAUTION` | Position is approaching risk boundaries |
-| 0 – 39 | `AT_RISK` | Position is near liquidation; immediate action recommended |
-
-The C++ contract exposes two entry points:
-- `analyze(user)` — reads vault state on-chain for a given address and scores it
-- `analyzeRaw(collateralUSD, debt, volatility, ratio)` — scores arbitrary parameters directly, used by the frontend risk monitor
-
-Because the score depends on the volatility value emitted by the Rust EWMA contract, the full risk pipeline in a single `mint()` call is:
-
-```
-CollateralVault → RiskEngineCaller (Rust/PVM) → StabilityAnalyzer (C++/PVM)
-```
-
-Both cross-VM calls are dispatched via `pallet-revive` within the same atomic transaction.
+| Score | Flag |
+|---|---|
+| 60 – 100 | `STABLE` |
+| 30 – 59 | `CAUTION` |
+| 0 – 29 | `AT_RISK` |
 
 ### Health Factor
 
@@ -137,18 +126,18 @@ XCM V4 messages are SCALE-encoded in `xcm.ts`:
 
 ## Contracts
 
-All deployed on **Paseo Asset Hub / Polkadot Hub TestNet** (Chain ID: `420420417`)
+All deployed on **Polkadot Hub TestNet** (Chain ID: `420420417`)
 
-| Contract | Address |
-|---|---|
-| PolkaDollar (pUSD) | `0x876df4BBD21ec38f78D6AEbF9687a89445821BE7` |
-| CollateralVault | `0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae` |
-| PriceFeed | `0xCDe170C92E281757aD961Ba47B33DFacd827a761` |
-| RiskEngine (Rust/PVM) | `0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B` |
-| RiskEngineCaller (EVM) | `0xF11336b3910426e1A4433adA20E19eA73876A306` |
-| StabilityAnalyzer (C++) | `0x6B22F224B7534F8cf446212BA2bA0446dFe4cF57` |
-| StabilityEngine (C++) | `0x0a86C6f085E7De256F44fADb7F39DEB122d8017c` |
-| XCMTransfer | `0x0bbB5aA6EDc0d7027e9893d405a80E0f47204fED` |
+| Contract | Language | Address |
+|---|---|---|
+| PolkaDollar (pUSD) | Solidity | `0x876df4BBD21ec38f78D6AEbF9687a89445821BE7` |
+| CollateralVault | Solidity | `0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae` |
+| PriceFeed | Solidity | `0xCDe170C92E281757aD961Ba47B33DFacd827a761` |
+| RiskEngine | **Rust** | `0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B` |
+| RiskEngineCaller | Solidity | `0xF11336b3910426e1A4433adA20E19eA73876A306` |
+| StabilityEngine | **C++** | `0x0a86C6f085E7De256F44fADb7F39DEB122d8017c` |
+| StabilityAnalyzer | Solidity | `0x6B22F224B7534F8cf446212BA2bA0446dFe4cF57` |
+| XCMTransfer | Solidity | `0x0bbB5aA6EDc0d7027e9893d405a80E0f47204fED` |
 
 **Network**
 
@@ -185,8 +174,11 @@ Wrapper around the PVM Rust contract. Encodes calldata, dispatches cross-VM, dec
 - `pushPrice(price)` — feeds a new price point to the EWMA model
 - `assessRisk()` — returns `(regime uint8, ratio uint256)`
 
-### FibCaller.sol
-Demo. Calls a Rust Fibonacci implementation on PVM. Shows cross-VM call pattern without financial logic.
+### StabilityAnalyzer.sol
+Calls the C++ PVM contract. Returns a numeric stability score and a text flag: `STABLE`, `CAUTION`, or `AT_RISK`.
+
+- `analyze(user)` — reads vault state for `user` and scores it
+- `analyzeRaw(collateralUSD, debt, volatility, ratio)` — custom parameters
 
 ### XCMTransfer.sol
 Calls the XCM precompile at `0x000000000000000000000000000000000000A000`.
@@ -194,212 +186,17 @@ Calls the XCM precompile at `0x000000000000000000000000000000000000A000`.
 - `sendCrossChain(dest, message)` — low-level dispatch
 - `send(dest, message, address)` — higher-level with recipient
 
-### StabilityAnalyzer.sol
-Calls the C++ PVM contract. Returns a numeric stability score and a text flag: `STABLE`, `CAUTION`, or `AT_RISK`.
-
-- `analyze(user)` — reads vault state for `user` and scores it
-- `analyzeRaw(collateralUSD, debt, volatility, ratio)` — custom parameters
-
 ---
 
-## Repository Structure
+## Getting Started
 
-```
-Polkadollar/
-├── contracts/
-│   ├── contracts/
-│   │   ├── PolkaDollar.sol          # ERC-20 pUSD token
-│   │   ├── CollateralVault.sol      # Core lending logic
-│   │   ├── PriceFeed.sol            # Owner-updatable oracle
-│   │   ├── RiskEngineCaller.sol     # EVM → Rust (EWMA) bridge
-│   │   ├── FibCaller.sol            # Cross-VM demo (Fibonacci)
-│   │   ├── XCMTransfer.sol          # XCM dispatcher
-│   │   ├── MockXCMTransfer.sol      # XCM mock for testing
-│   │   └── StabilityAnalyzer.sol   # EVM → C++ (PVM) bridge
-│   ├── scripts/
-│   │   ├── deploy-backend.ts        # Deploy PriceFeed + pUSD + Vault
-│   │   ├── oracle-sync.ts           # Fetch DOT price, push to contracts
-│   │   ├── e2e-backend.ts           # End-to-end: deposit → mint → burn → withdraw
-│   │   ├── wire-existing-vault.ts   # Link vault to existing pUSD token
-│   │   ├── deploy-xcm-transfer.ts   # Deploy XCMTransfer
-│   │   ├── xcm-encode.ts            # Generate XCM hex
-│   │   ├── send-xcm-direct.ts       # Send XCM via precompile
-│   │   ├── demo.ts                  # Fibonacci cross-VM demo
-│   │   └── selectors.ts             # Print function selectors
-│   ├── hardhat.config.ts
-│   ├── .env                         # Private key, RPC, addresses
-│   └── package.json
-│
-├── frontend/
-│   ├── app/
-│   │   ├── layout.tsx               # Root layout, fonts, cursor, scroll
-│   │   ├── page.tsx                 # Landing page
-│   │   └── (protocol)/
-│   │       ├── dashboard/page.tsx   # Protocol stats, charts, gauges
-│   │       ├── vault/page.tsx       # Deposit, mint, burn, withdraw, liquidate
-│   │       ├── bridge/page.tsx      # XCM cross-chain transfer UI
-│   │       └── risk-monitor/page.tsx # EWMA volatility, regime, charts
-│   ├── components/
-│   │   ├── RiskGauge.tsx            # Regime dial visualization
-│   │   ├── StabilityGauge.tsx       # C++ stability score visualization
-│   │   ├── GlitchMarquee.tsx        # Landing page marquee
-│   │   ├── SmoothCursor.tsx         # Custom cursor
-│   │   └── SmoothScroll.tsx         # Lenis scroll wrapper
-│   ├── hooks/
-│   │   └── usePolkadollarBackend.ts # All contract interactions (ethers v6)
-│   ├── lib/
-│   │   └── xcm.ts                   # XCM SCALE encoding utilities
-│   ├── context/
-│   │   └── protocol-provider.tsx    # Global state: wallet, position, risk, history
-│   ├── .env                         # Contract addresses, chain config
-│   └── package.json
-│
-├── BACKEND.md                       # Backend ops reference
-├── FRONTEND_INTEGRATION.md          # Integration guide
-└── LICENSE
-```
+Each part of this repo has its own README with full setup and deployment instructions:
 
----
-
-## How to Run
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-- MetaMask browser extension
-- Paseo testnet PAS tokens ([faucet](https://faucet.polkadot.io/))
-
----
-
-### Contracts
-
-**1. Install dependencies**
-
-```bash
-cd contracts
-npm install
-```
-
-**2. Configure environment**
-
-Create `contracts/.env`:
-
-```env
-PRIVATE_KEY=<your_private_key>
-HUB_RPC_URL=https://eth-rpc-testnet.polkadot.io/
-COINGECKO_API_KEY=<optional>
-
-# Set after first deploy:
-RISK_ENGINE_ADDRESS=0x1a5b66d8b4170213696D7a0Ec465fFF165E6ba2B
-PUSD_ADDRESS=0x876df4BBD21ec38f78D6AEbF9687a89445821BE7
-VAULT_ADDRESS=0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae
-PRICE_FEED_ADDRESS=0xCDe170C92E281757aD961Ba47B33DFacd827a761
-```
-
-**3. Compile**
-
-```bash
-npx hardhat compile
-```
-
-**4. Deploy**
-
-```bash
-# Deploy PriceFeed, pUSD token, CollateralVault
-npx hardhat run scripts/deploy-backend.ts --network hub
-
-# Deploy XCM transfer contract
-npx hardhat run scripts/deploy-xcm-transfer.ts --network hub
-```
-
-**5. Sync oracle**
-
-```bash
-# Push current DOT price from CoinGecko to PriceFeed and RiskEngine
-npx hardhat run scripts/oracle-sync.ts --network hub
-
-# Run continuously every 5 minutes
-ORACLE_ONCE=false ORACLE_INTERVAL_SECONDS=300 npx hardhat run scripts/oracle-sync.ts --network hub
-```
-
-**6. Run end-to-end test**
-
-```bash
-npx hardhat run scripts/e2e-backend.ts --network hub
-```
-
-Expected output:
-```
-Deposited 1 DOT
-Minted X pUSD (auto-computed from regime ratio)
-Burned 0.5 pUSD
-Withdrew 0.1 DOT
-Final health factor: OK
-```
-
-**7. Cross-VM demo (Fibonacci)**
-
-```bash
-npx hardhat run scripts/demo.ts --network hub
-```
-
----
-
-### Frontend
-
-**1. Install dependencies**
-
-```bash
-cd frontend
-pnpm install
-```
-
-**2. Configure environment**
-
-`frontend/.env` is pre-populated with testnet addresses. No changes needed to run against the deployed contracts:
-
-```env
-NEXT_PUBLIC_VAULT_ADDRESS=0x54Dc42542E36F10b5Ff8B60A00cf1e48278006ae
-NEXT_PUBLIC_PUSD_ADDRESS=0x876df4BBD21ec38f78D6AEbF9687a89445821BE7
-NEXT_PUBLIC_PRICE_FEED_ADDRESS=0xCDe170C92E281757aD961Ba47B33DFacd827a761
-NEXT_PUBLIC_RISK_ENGINE_ADDRESS=0xF11336b3910426e1A4433adA20E19eA73876A306
-NEXT_PUBLIC_STABILITY_ANALYZER_ADDRESS=0x6B22F224B7534F8cf446212BA2bA0446dFe4cF57
-NEXT_PUBLIC_XCM_PRECOMPILE=0x000000000000000000000000000000000000A000
-NEXT_PUBLIC_RPC_URL=https://eth-rpc-testnet.polkadot.io/
-NEXT_PUBLIC_CHAIN_ID=420420417
-NEXT_PUBLIC_CHAIN_NAME=Polkadot Hub TestNet
-NEXT_PUBLIC_CURRENCY_SYMBOL=PAS
-NEXT_PUBLIC_EXPLORER_URL=https://blockscout-testnet.polkadot.io/
-```
-
-**3. Run dev server**
-
-```bash
-pnpm dev
-```
-
-Opens at `http://localhost:3000`.
-
-**4. Connect wallet**
-
-- Add Polkadot Hub TestNet to MetaMask:
-  - RPC: `https://eth-rpc-testnet.polkadot.io/`
-  - Chain ID: `420420417`
-  - Symbol: `PAS`
-- Get PAS from the [Paseo faucet](https://faucet.polkadot.io/)
-
----
-
-### Frontend Pages
-
-| Route | Purpose |
+| Part | README |
 |---|---|
-| `/` | Landing page |
-| `/dashboard` | Protocol overview: DOT price, TVL, pUSD supply, risk regime, stability score, 30-day charts |
-| `/vault` | Manage position: deposit DOT, mint pUSD, burn debt, withdraw collateral, liquidate others |
-| `/bridge` | Send assets cross-chain to other parachains via XCM |
-| `/risk-monitor` | EWMA volatility over time, regime history, ratio overlay |
+| Contracts (Solidity + Rust) | [`contracts/README.md`](./contracts/README.md) |
+| C++ StabilityEngine | [`contracts/c++/README.md`](./contracts/c++/README.md) |
+| Frontend | [`frontend/README.md`](./frontend/README.md) |
 
 ---
 
@@ -412,7 +209,7 @@ A fixed ratio is either too tight (undercollateralized during volatility spikes)
 Fixed-point EWMA needs precise arithmetic without floating point. Rust gives deterministic behavior and the ability to use integer math that matches the EVM's execution guarantees. The call happens in the same block as the mint — no oracle lag, no separate keeper transaction.
 
 **Why C++ on PVM for the stability analyzer?**
-The multi-dimensional scoring model involves several parallel weighted computations that map naturally to C++ value semantics. Like the Rust contract, the C++ contract compiles to PVM bytecode and uses only integer arithmetic (scaled by 1e6) — no floating point, fully deterministic. The `analyzeRaw` entry point accepts the same volatility value returned by the Rust EWMA contract, so both models share a single coherent risk state per transaction.
+The multi-factor scoring model maps naturally to C++ value semantics. Like the Rust contract, it compiles to PVM bytecode and uses only integer arithmetic — no floating point, fully deterministic. The `analyzeRaw` entry point accepts the same volatility value returned by the Rust EWMA contract, so both models share a single coherent risk state per transaction.
 
 **Why pallet-revive instead of a precompile?**
 pallet-revive transparently routes EVM calls to PVM contracts. The Solidity code uses a normal external call — no custom ABI encoding at the call site. The routing is handled at the runtime level.
@@ -445,6 +242,5 @@ PriceFeed is intentionally simple: owner-controlled, no TWAP. The oracle-sync sc
 | Frontend | Next.js 16, React 19, TypeScript |
 | Contract interaction | ethers.js v6 |
 | UI | Tailwind CSS, Radix UI, Recharts, Framer Motion |
-| Scroll | Lenis |
 | Polkadot utilities | @polkadot/api, @polkadot/util-crypto |
 | Network | Paseo Asset Hub (Polkadot Hub TestNet) |
